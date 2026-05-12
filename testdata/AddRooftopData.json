@@ -1,0 +1,19 @@
+{
+  "name": "Rooftop",
+  "description": "Test rooftop description",
+  "rooftopID": "RT1001",
+  "franchise": "FRN67890",
+  "playerColor": "#FF5733",
+  "salesPersonName": "John Doe",
+  "address": "123 Main St",
+  "city": "Anytown",
+  "state": "CA",
+  "zip": "90210",
+  "phone": "5551234567",
+  "email": "test@example.com",
+  "url": "https://example.com",
+  "facebookID": "FB123",
+  "dealerGroups": "Group A",
+  "comments": "Automation Test",
+  "active": true
+}

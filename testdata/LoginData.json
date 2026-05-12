@@ -1,0 +1,18 @@
+{
+    "QAvalidData": {
+      "Username": "SuperAdmin",
+      "Password": "Admin@123"
+    },
+    "QAinvalidData": [
+      {
+        "Username": "Admin1243",
+        "Password": "Admin3344"
+      }
+    ],
+    "SpecialCharacters": [
+      {
+        "Username": "Admin@123",
+        "Password": "Admin@123"
+      }
+    ]
+}

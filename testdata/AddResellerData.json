@@ -1,0 +1,17 @@
+{
+  "Name": "Pavan EVS",
+  "Description": "Test Desc",
+  "BillingName": "Billing Name",
+  "SalesPerson": "John",
+  "TTOptions": "TT1",
+  "AppID": "12345",
+  "PlayerSize": "640",
+  "Address": "Hyderabad, India",
+  "City": "Hyderabad",
+  "State": "Telangana",
+  "Zip": "500001",
+  "Phone": "9876543210",
+  "Email": "pavankumar.t@atamai.in",
+  "URL": "https://evsadmin.com/ava/admin/",
+  "FacebookID": "fb123"
+}

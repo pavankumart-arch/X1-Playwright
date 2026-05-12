@@ -1,0 +1,19 @@
+{
+  "Name": "Premier Auto Rooftop",
+  "Description": "It is a test description for Rooftop Automation",
+  "RooftopID": "RT1001",
+  "Franchise": "FR2026",
+  "PlayerColor": "000000",
+  "SalesPersonName": "Pavan Kumar",
+  "Address": "Hyderabad, Telangana, India",
+  "City": "Hyderabad",
+  "State": "Telangana",
+  "Zip": "500004",
+  "Phone": "9581426461",
+  "Email": "pavankumar.t1@atamai.in",
+  "URL": "https://example.com",
+  "FacebookID": "fb12311",
+  "DealerGroups": "GroupA,GroupB",
+  "Comments": "Automation test data for Rooftop module",
+  "Active": true
+}
