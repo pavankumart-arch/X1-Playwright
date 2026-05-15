@@ -1,4 +1,4 @@
-﻿import { Locator, Page, TestInfo } from '@playwright/test';
+﻿import { expect, Locator, Page, TestInfo } from '@playwright/test';
 import { BasePage } from '../../pages/BasePage';
 import { logAndValidate } from '../../utils/reportUtil';
 
@@ -9,21 +9,34 @@ export class TableSorting extends BasePage {
 
   constructor(page: Page) {
     super(page);
+
     this.tableRows = page.locator('table tbody tr');
     this.tableHeaders = page.locator('table thead th');
   }
 
-  async validateColumnSorting(columnName: string, testInfo: TestInfo): Promise<boolean> {
+  async validateColumnSorting(
+    columnName: string,
+    testInfo: TestInfo
+  ): Promise<boolean> {
 
     const columnIndex = await this.getColumnIndex(columnName);
     const header = this.tableHeaders.nth(columnIndex);
 
-    // ASC
+    // =========================
+    // ASCENDING
+    // =========================
+
     await header.click();
-    await this.page.waitForTimeout(800);
+
+    await this.waitForTableLoad();
+
     await this.goToFirstPage();
 
-    const ascResult = await this.validateAllPages(columnIndex, 'ASC', testInfo);
+    const ascResult = await this.validateAllPages(
+      columnIndex,
+      'ASC',
+      testInfo
+    );
 
     logAndValidate({
       step: `🔼 ASCENDING ORDER (${columnName})`,
@@ -31,12 +44,21 @@ export class TableSorting extends BasePage {
       actual: ascResult ? 'PASS' : 'FAIL'
     }, testInfo);
 
-    // DESC
+    // =========================
+    // DESCENDING
+    // =========================
+
     await header.click();
-    await this.page.waitForTimeout(800);
+
+    await this.waitForTableLoad();
+
     await this.goToFirstPage();
 
-    const descResult = await this.validateAllPages(columnIndex, 'DESC', testInfo);
+    const descResult = await this.validateAllPages(
+      columnIndex,
+      'DESC',
+      testInfo
+    );
 
     logAndValidate({
       step: `🔽 DESCENDING ORDER (${columnName})`,
@@ -56,31 +78,44 @@ export class TableSorting extends BasePage {
     let pageNumber = 1;
     let isAllPass = true;
 
+    const allValues: any[] = [];
+
     while (true) {
 
       const values = await this.getColumnValues(columnIndex);
-      const pageCheck = this.checkSorting(values, order);
 
-      if (pageCheck.expected !== pageCheck.actual) {
-        isAllPass = false;
-      }
+      console.log(`Page ${pageNumber} Values =>`, values);
 
-      logAndValidate({
-        step: `Page ${pageNumber}`,
-        expected: pageCheck.expected,
-        actual: pageCheck.actual
-      }, testInfo);
+      allValues.push(...values);
 
       const nextBtn = this.page.locator('button:has-text("Next")').last();
 
-      if (!(await nextBtn.isVisible()) || !(await nextBtn.isEnabled())) break;
+      const isDisabled =
+        !(await nextBtn.isVisible()) ||
+        !(await nextBtn.isEnabled());
+
+      if (isDisabled) break;
 
       await nextBtn.click();
-      await this.page.waitForTimeout(800);
+
+      await this.waitForTableLoad();
 
       pageNumber++;
-      if (pageNumber > 50) break;
+
+      if (pageNumber > 100) break;
     }
+
+    const finalResult = this.checkSorting(allValues, order);
+
+    if (finalResult.expected !== finalResult.actual) {
+      isAllPass = false;
+    }
+
+    logAndValidate({
+      step: `Full Table Validation (${order})`,
+      expected: finalResult.expected,
+      actual: finalResult.actual
+    }, testInfo);
 
     return isAllPass;
   }
@@ -88,15 +123,19 @@ export class TableSorting extends BasePage {
   private async getColumnValues(columnIndex: number): Promise<any[]> {
 
     const values: any[] = [];
+
     const count = await this.tableRows.count();
 
     for (let i = 0; i < count; i++) {
 
-      const text = (await this.tableRows
+      const cell = this.tableRows
         .nth(i)
         .locator('td')
-        .nth(columnIndex)
-        .innerText()).trim();
+        .nth(columnIndex);
+
+      let text = (await cell.innerText()).trim();
+
+      text = text.replace(/\s+/g, ' ');
 
       values.push(this.parseValue(text));
     }
@@ -106,34 +145,52 @@ export class TableSorting extends BasePage {
 
   private parseValue(value: string): any {
 
-    if (!isNaN(Number(value))) return Number(value);
+    const cleanValue = value.trim();
 
-    const date = new Date(value);
-    if (!isNaN(date.getTime())) return date;
+    // NULL / EMPTY
+    if (!cleanValue || cleanValue === '-') {
+      return '';
+    }
 
-    return value.toLowerCase();
+    // NUMBER
+    if (/^-?\d+(\.\d+)?$/.test(cleanValue)) {
+      return Number(cleanValue);
+    }
+
+    // DATE FORMAT ONLY
+    const dateRegex =
+      /^(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})$/;
+
+    if (dateRegex.test(cleanValue)) {
+
+      const date = new Date(cleanValue);
+
+      if (!isNaN(date.getTime())) {
+        return date.getTime();
+      }
+    }
+
+    // STRING
+    return cleanValue.toLowerCase();
   }
 
-  private checkSorting(values: any[], order: 'ASC' | 'DESC') {
+  private checkSorting(
+    values: any[],
+    order: 'ASC' | 'DESC'
+  ) {
 
     for (let i = 0; i < values.length - 1; i++) {
 
       const a = values[i];
       const b = values[i + 1];
 
-      let isValid;
-
-      if (a instanceof Date && b instanceof Date) {
-        isValid = order === 'ASC'
-          ? a.getTime() <= b.getTime()
-          : a.getTime() >= b.getTime();
-      } else {
-        isValid = order === 'ASC'
+      const isValid =
+        order === 'ASC'
           ? a <= b
           : a >= b;
-      }
 
       if (!isValid) {
+
         return {
           expected: `${a} ${order === 'ASC' ? '<=' : '>='} ${b}`,
           actual: `${a} ${order === 'ASC' ? '>' : '<'} ${b}`
@@ -141,7 +198,10 @@ export class TableSorting extends BasePage {
       }
     }
 
-    return { expected: 'Sorted', actual: 'Sorted' };
+    return {
+      expected: 'Sorted',
+      actual: 'Sorted'
+    };
   }
 
   private async getColumnIndex(columnName: string) {
@@ -149,8 +209,16 @@ export class TableSorting extends BasePage {
     const count = await this.tableHeaders.count();
 
     for (let i = 0; i < count; i++) {
-      const text = (await this.tableHeaders.nth(i).innerText()).trim();
-      if (text.toLowerCase().includes(columnName.toLowerCase())) return i;
+
+      const text = (
+        await this.tableHeaders.nth(i).innerText()
+      ).trim();
+
+      if (
+        text.toLowerCase().includes(columnName.toLowerCase())
+      ) {
+        return i;
+      }
     }
 
     throw new Error(`Column not found: ${columnName}`);
@@ -158,11 +226,25 @@ export class TableSorting extends BasePage {
 
   private async goToFirstPage() {
 
-    const prevBtn = this.page.locator('button:has-text("Prev")').first();
+    const prevBtn = this.page
+      .locator('button:has-text("Prev")')
+      .first();
 
-    while (await prevBtn.isVisible() && await prevBtn.isEnabled()) {
+    while (
+      await prevBtn.isVisible() &&
+      await prevBtn.isEnabled()
+    ) {
+
       await prevBtn.click();
-      await this.page.waitForTimeout(500);
+
+      await this.waitForTableLoad();
     }
+  }
+
+  private async waitForTableLoad() {
+
+    await this.page.waitForLoadState('networkidle');
+
+    await expect(this.tableRows.first()).toBeVisible();
   }
 }
