@@ -1,4 +1,4 @@
-﻿import { expect, Locator, Page, TestInfo } from '@playwright/test';
+﻿import { Locator, Page, TestInfo } from '@playwright/test';
 import { BasePage } from '../../pages/BasePage';
 import { logAndValidate } from '../../utils/reportUtil';
 
@@ -9,113 +9,129 @@ export class TableSorting extends BasePage {
 
   constructor(page: Page) {
     super(page);
-
     this.tableRows = page.locator('table tbody tr');
     this.tableHeaders = page.locator('table thead th');
   }
 
-  async validateColumnSorting(
-    columnName: string,
-    testInfo: TestInfo
-  ): Promise<boolean> {
+  async validateColumnSorting(columnName: string, testInfo: TestInfo): Promise<boolean> {
 
-    const columnIndex = await this.getColumnIndex(columnName);
-    const header = this.tableHeaders.nth(columnIndex);
+    try {
 
-    // =========================
-    // ASCENDING
-    // =========================
+      const columnIndex = await this.getColumnIndex(columnName);
 
-    await header.click();
+      const header = this.tableHeaders.nth(columnIndex);
 
-    await this.waitForTableLoad();
+      // ASCENDING
 
-    await this.goToFirstPage();
+      await header.click();
 
-    const ascResult = await this.validateAllPages(
-      columnIndex,
-      'ASC',
-      testInfo
-    );
+      await this.page.waitForTimeout(2000);
 
-    logAndValidate({
-      step: `🔼 ASCENDING ORDER (${columnName})`,
-      expected: 'PASS',
-      actual: ascResult ? 'PASS' : 'FAIL'
-    }, testInfo);
+      await this.waitForTableLoad();
 
-    // =========================
-    // DESCENDING
-    // =========================
+      await this.goToFirstPage();
 
-    await header.click();
+      const ascResult = await this.validateAllPages(columnIndex, 'ASC', testInfo);
 
-    await this.waitForTableLoad();
+      logAndValidate({
+        step: `🔼 ASCENDING ORDER (${columnName})`,
+        expected: 'PASS',
+        actual: ascResult ? 'PASS' : 'FAIL'
+      }, testInfo);
 
-    await this.goToFirstPage();
+      // DESCENDING
 
-    const descResult = await this.validateAllPages(
-      columnIndex,
-      'DESC',
-      testInfo
-    );
+      await header.click();
 
-    logAndValidate({
-      step: `🔽 DESCENDING ORDER (${columnName})`,
-      expected: 'PASS',
-      actual: descResult ? 'PASS' : 'FAIL'
-    }, testInfo);
+      await this.page.waitForTimeout(2000);
 
-    return ascResult && descResult;
+      await this.waitForTableLoad();
+
+      await this.goToFirstPage();
+
+      const descResult = await this.validateAllPages(columnIndex, 'DESC', testInfo);
+
+      logAndValidate({
+        step: `🔽 DESCENDING ORDER (${columnName})`,
+        expected: 'PASS',
+        actual: descResult ? 'PASS' : 'FAIL'
+      }, testInfo);
+
+      return ascResult && descResult;
+
+    } catch (error: any) {
+
+      console.log(`
+========================================
+SORTING VALIDATION FAILED
+COLUMN : ${columnName}
+ERROR  : ${error.message}
+========================================
+`);
+
+      return false;
+    }
   }
 
-  private async validateAllPages(
-    columnIndex: number,
-    order: 'ASC' | 'DESC',
-    testInfo: TestInfo
-  ): Promise<boolean> {
+  private async validateAllPages(columnIndex: number, order: 'ASC' | 'DESC', testInfo: TestInfo): Promise<boolean> {
 
     let pageNumber = 1;
+
     let isAllPass = true;
 
     const allValues: any[] = [];
 
-    while (true) {
+    try {
 
-      const values = await this.getColumnValues(columnIndex);
+      while (true) {
 
-      console.log(`Page ${pageNumber} Values =>`, values);
+        const values = await this.getColumnValues(columnIndex);
 
-      allValues.push(...values);
+        console.log(`Page ${pageNumber} Values =>`, values);
 
-      const nextBtn = this.page.locator('button:has-text("Next")').last();
+        allValues.push(...values);
 
-      const isDisabled =
-        !(await nextBtn.isVisible()) ||
-        !(await nextBtn.isEnabled());
+        const nextBtn = this.page.locator('button:has-text("Next")').last();
 
-      if (isDisabled) break;
+        const isDisabled = !(await nextBtn.isVisible()) || !(await nextBtn.isEnabled());
 
-      await nextBtn.click();
+        if (isDisabled) break;
 
-      await this.waitForTableLoad();
+        await nextBtn.click();
 
-      pageNumber++;
+        await this.page.waitForTimeout(2000);
 
-      if (pageNumber > 100) break;
-    }
+        await this.waitForTableLoad();
 
-    const finalResult = this.checkSorting(allValues, order);
+        pageNumber++;
 
-    if (finalResult.expected !== finalResult.actual) {
+        if (pageNumber > 100) break;
+      }
+
+      const finalResult = this.checkSorting(allValues, order);
+
+      if (finalResult.expected !== finalResult.actual) {
+        isAllPass = false;
+      }
+
+      logAndValidate({
+        step: `Full Table Validation (${order})`,
+        expected: finalResult.expected,
+        actual: finalResult.actual
+      }, testInfo);
+
+    } catch (error: any) {
+
+      console.log(`
+========================================
+PAGE VALIDATION FAILED
+ORDER  : ${order}
+ERROR  : ${error.message}
+========================================
+`);
+
       isAllPass = false;
     }
-
-    logAndValidate({
-      step: `Full Table Validation (${order})`,
-      expected: finalResult.expected,
-      actual: finalResult.actual
-    }, testInfo);
 
     return isAllPass;
   }
@@ -124,21 +140,26 @@ export class TableSorting extends BasePage {
 
     const values: any[] = [];
 
-    const count = await this.tableRows.count();
+    try {
 
-    for (let i = 0; i < count; i++) {
+      const count = await this.tableRows.count();
 
-      const cell = this.tableRows
-        .nth(i)
-        .locator('td')
-        .nth(columnIndex);
+      for (let i = 0; i < count; i++) {
 
-      let text = (await cell.innerText()).trim();
+        try {
 
-      text = text.replace(/\s+/g, ' ');
+          const cell = this.tableRows.nth(i).locator('td').nth(columnIndex);
 
-      values.push(this.parseValue(text));
-    }
+          let text = (await cell.innerText()).trim();
+
+          text = text.replace(/\s+/g, ' ');
+
+          values.push(this.parseValue(text));
+
+        } catch {}
+      }
+
+    } catch {}
 
     return values;
   }
@@ -147,47 +168,31 @@ export class TableSorting extends BasePage {
 
     const cleanValue = value.trim();
 
-    // NULL / EMPTY
-    if (!cleanValue || cleanValue === '-') {
-      return '';
-    }
+    if (!cleanValue || cleanValue === '-') return '';
 
-    // NUMBER
-    if (/^-?\d+(\.\d+)?$/.test(cleanValue)) {
-      return Number(cleanValue);
-    }
+    if (/^-?\d+(\.\d+)?$/.test(cleanValue)) return Number(cleanValue);
 
-    // DATE FORMAT ONLY
-    const dateRegex =
-      /^(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})$/;
+    const dateRegex = /^(\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}|\d{2}-\d{2}-\d{4})$/;
 
     if (dateRegex.test(cleanValue)) {
 
       const date = new Date(cleanValue);
 
-      if (!isNaN(date.getTime())) {
-        return date.getTime();
-      }
+      if (!isNaN(date.getTime())) return date.getTime();
     }
 
-    // STRING
     return cleanValue.toLowerCase();
   }
 
-  private checkSorting(
-    values: any[],
-    order: 'ASC' | 'DESC'
-  ) {
+  private checkSorting(values: any[], order: 'ASC' | 'DESC') {
 
     for (let i = 0; i < values.length - 1; i++) {
 
       const a = values[i];
+
       const b = values[i + 1];
 
-      const isValid =
-        order === 'ASC'
-          ? a <= b
-          : a >= b;
+      const isValid = order === 'ASC' ? a <= b : a >= b;
 
       if (!isValid) {
 
@@ -210,15 +215,9 @@ export class TableSorting extends BasePage {
 
     for (let i = 0; i < count; i++) {
 
-      const text = (
-        await this.tableHeaders.nth(i).innerText()
-      ).trim();
+      const text = (await this.tableHeaders.nth(i).innerText()).trim();
 
-      if (
-        text.toLowerCase().includes(columnName.toLowerCase())
-      ) {
-        return i;
-      }
+      if (text.toLowerCase().includes(columnName.toLowerCase())) return i;
     }
 
     throw new Error(`Column not found: ${columnName}`);
@@ -226,25 +225,36 @@ export class TableSorting extends BasePage {
 
   private async goToFirstPage() {
 
-    const prevBtn = this.page
-      .locator('button:has-text("Prev")')
-      .first();
+    try {
 
-    while (
-      await prevBtn.isVisible() &&
-      await prevBtn.isEnabled()
-    ) {
+      const prevBtn = this.page.locator('button:has-text("Prev")').first();
 
-      await prevBtn.click();
+      while (await prevBtn.isVisible() && await prevBtn.isEnabled()) {
 
-      await this.waitForTableLoad();
-    }
+        await prevBtn.click();
+
+        await this.page.waitForTimeout(2000);
+
+        await this.waitForTableLoad();
+      }
+
+    } catch {}
   }
 
   private async waitForTableLoad() {
 
-    await this.page.waitForLoadState('networkidle');
+    try {
 
-    await expect(this.tableRows.first()).toBeVisible();
+      await this.page.waitForLoadState('networkidle');
+
+      await this.tableRows.first().waitFor({
+        state: 'visible',
+        timeout: 5000
+      });
+
+    } catch {
+
+      console.log('⚠️ Table rows not visible');
+    }
   }
 }

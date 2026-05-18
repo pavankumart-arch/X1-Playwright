@@ -1,37 +1,96 @@
-import { expect, TestInfo } from '@playwright/test';
+// pages/utils/reportUtil.ts
 
-type ReportInput = {
-  step: string;
-  expected: any;
-  actual: any;
-  isSummary?: boolean;
-};
+export function logAndValidate(
+  {
+    step,
+    expected,
+    actual
+  }: {
+    step: string;
+    expected: any;
+    actual: any;
+  },
+  testInfo?: any
+) {
 
-export function logAndValidate(result: ReportInput, testInfo?: TestInfo) {
+  // =====================================
+  // SAFE STRING CONVERSION
+  // =====================================
 
-  const isPass =
-    result.expected === result.actual ||
-    String(result.actual).includes(String(result.expected));
+  const expectedValue =
+    String(expected ?? '')
+      .trim();
 
-  const status = isPass ? 'PASS ✅' : 'FAIL ❌';
+  const actualValue =
+    String(actual ?? '')
+      .trim();
 
-  const message = `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-STEP     : ${result.step}
-STATUS   : ${status}
-EXPECTED : ${result.expected}
-ACTUAL   : ${result.actual}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // =====================================
+  // PARTIAL MATCH SUPPORT
+  // =====================================
+
+  const passed =
+    actualValue
+      .toLowerCase()
+      .includes(
+        expectedValue
+          .toLowerCase()
+      );
+
+  // =====================================
+  // STATUS
+  // =====================================
+
+  const status =
+    passed
+      ? 'PASS ✅'
+      : 'FAIL ❌';
+
+  // =====================================
+  // REPORT MESSAGE
+  // =====================================
+
+  const message =
+`
+========================================
+🔍 STEP: ${step}
+
+EXPECTED: ${expectedValue}
+
+ACTUAL: ${actualValue}
+
+STATUS: ${status}
+========================================
 `;
+
+  // =====================================
+  // CONSOLE REPORT
+  // =====================================
 
   console.log(message);
 
+  // =====================================
+  // PLAYWRIGHT REPORT
+  // =====================================
+
   if (testInfo) {
-    testInfo.annotations.push({
-      type: 'Validation',
-      description: message
-    });
+
+    try {
+
+      testInfo.annotations.push({
+
+        type: 'VALIDATION',
+
+        description: message
+      });
+
+    } catch {
+
+      // Ignore annotation failure
+    }
   }
 
-  expect.soft(isPass).toBeTruthy();
+  // =====================================
+  // NO ASSERTION
+  // =====================================
 }

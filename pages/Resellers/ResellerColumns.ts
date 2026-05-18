@@ -1,85 +1,94 @@
-import {
-  Page,
-  Locator
-} from '@playwright/test';
+import { Page, Locator, expect, TestInfo } from '@playwright/test';
 
 export class ResellerColumns {
 
   page: Page;
-
-  headers: Locator;
-
   table: Locator;
+  headers: Locator;
 
   constructor(page: Page) {
 
     this.page = page;
 
-    this.table =
-      this.page.locator(
-        'table'
-      );
+    this.table = this.page.locator('table');
 
-    this.headers =
-      this.page.locator(
-        'table thead th'
-      );
+    this.headers = this.page.locator('table thead th');
   }
 
   // ============================================
-  // GET ACTUAL TABLE HEADERS
+  // VERIFY EXACT TABLE HEADERS
   // ============================================
 
-  async getActualHeaders(): Promise<string[]> {
+  async verifyHeaders(
+    expectedHeaders: string[],
+    testInfo: TestInfo
+  ): Promise<void> {
 
     await this.table.waitFor({
       state: 'visible',
       timeout: 10000
     });
 
-    const count =
-      await this.headers.count();
+    const count = await this.headers.count();
 
-    const actualHeaders:
-      string[] = [];
+    const actualHeaders: string[] = [];
 
-    for (
-      let i = 0;
-      i < count;
-      i++
-    ) {
+    for (let i = 0; i < count; i++) {
 
-      const text =
-        (
-          await this.headers
-            .nth(i)
-            .textContent()
-        )?.trim();
+      const headerText =
+        (await this.headers.nth(i).innerText())?.trim();
 
-      if (text) {
+      if (headerText) {
 
-        actualHeaders.push(
-          text.toUpperCase()
-        );
+        actualHeaders.push(headerText);
       }
     }
 
-    console.log(
-      '\n========================================'
-    );
+    // ============================================
+    // COLUMN VALIDATION REPORT
+    // ============================================
 
-    console.log(
-      'ACTUAL TABLE HEADERS'
-    );
+    for (let i = 0; i < expectedHeaders.length; i++) {
 
-    console.log(
-      '========================================'
-    );
+      const expected = expectedHeaders[i];
 
-    console.log(
-      actualHeaders
-    );
+      const actual = actualHeaders[i] || 'MISSING';
 
-    return actualHeaders;
+      const status =
+        expected === actual
+          ? 'PASSED'
+          : 'FAILED';
+
+      testInfo.annotations.push({
+        type: `COLUMN ${i + 1}`,
+
+        description:
+`
+========================================
+STEP     : Verify Column "${expected}"
+
+EXPECTED : ${expected}
+
+ACTUAL   : ${actual}
+
+STATUS   : ${status}
+========================================
+`
+      });
+
+      console.log(`
+========================================
+STEP     : Verify Column "${expected}"
+
+EXPECTED : ${expected}
+
+ACTUAL   : ${actual}
+
+STATUS   : ${status}
+========================================
+`);
+
+      expect.soft(actual).toBe(expected);
+    }
   }
 }

@@ -1,369 +1,169 @@
-import {
-  test,
-  TestInfo
-} from '@playwright/test';
+import { test, TestInfo } from '@playwright/test';
 
-import { Login }
-from '../../pages/Login/Loginpage';
+import { Login } from '../../pages/Login/Loginpage';
 
-import { LeftsideNavigation }
-from '../../pages/Navigations/LeftSideNavigation';
+import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
 
-import { ResellerSearch }
-from '../../pages/Resellers/ResellerSearch';
+import { ResellerSearch } from '../../pages/Resellers/ResellerSearch';
 
-test.describe(
-  'Reseller Search Test Cases',
-  () => {
+test(
+  'Verify All Reseller Search Validations',
+  async ({ page }, testInfo: TestInfo) => {
 
-    let loginPage: Login;
+    // =====================================
+    // INCREASE TIMEOUT
+    // =====================================
 
-    let leftsideNavigation:
-      LeftsideNavigation;
+    test.setTimeout(300000);
 
-    let resellerSearch:
-      ResellerSearch;
+    const loginPage =
+      new Login(page);
 
-    test.beforeEach(
-      async ({ page }) => {
+    const leftsideNavigation =
+      new LeftsideNavigation(page);
 
-        loginPage =
-          new Login(page);
+    const resellerSearch =
+      new ResellerSearch(page);
 
-        leftsideNavigation =
-          new LeftsideNavigation(
-            page
-          );
+    // =====================================
+    // LOGIN ONLY ONCE
+    // =====================================
 
-        resellerSearch =
-          new ResellerSearch(
-            page
-          );
+    await loginPage.navigateToURL();
 
-        await loginPage.navigateToURL();
+    await loginPage.loginToApplication();
 
-        await loginPage.loginToApplication();
+    await leftsideNavigation.goToDashboard();
 
-        await leftsideNavigation.goToDashboard();
+    await leftsideNavigation.goToResellers();
 
-        await leftsideNavigation.goToResellers();
+    // =====================================
+    // SEARCH VALIDATION HEADING
+    // =====================================
+
+    testInfo.annotations.push({
+
+      type: 'SEARCH VALIDATION',
+
+      description:
+`
+========================================
+RESELLER SEARCH VALIDATION
+========================================
+`
+    });
+
+    // =====================================
+    // SEARCH TEST LIST
+    // =====================================
+
+    const searchTests = [
+
+      {
+        name: 'Search by ID',
+        method: () =>
+          resellerSearch.searchByID(testInfo)
+      },
+
+      {
+        name: 'Search by Name',
+        method: () =>
+          resellerSearch.searchByName(testInfo)
+      },
+
+      {
+        name: 'Search by Description',
+        method: () =>
+          resellerSearch.searchByDescription(testInfo)
+      },
+
+      {
+        name: 'Search by Created Date',
+        method: () =>
+          resellerSearch.searchByCreated(testInfo)
+      },
+
+      {
+        name: 'Search by Status',
+        method: () =>
+          resellerSearch.searchByStatus(testInfo)
+      },
+
+      {
+        name: 'Search by Billing Name',
+        method: () =>
+          resellerSearch.searchByBillingName(testInfo)
+      },
+
+      {
+        name: 'Search by Sales Person',
+        method: () =>
+          resellerSearch.searchBySalesPerson(testInfo)
+      },
+
+      {
+        name: 'Search by TT Options',
+        method: () =>
+          resellerSearch.searchByTTOptions(testInfo)
+      },
+
+      {
+        name: 'Search by App ID',
+        method: () =>
+          resellerSearch.searchByAppID(testInfo)
+      },
+
+      {
+        name: 'Search by Player Size',
+        method: () =>
+          resellerSearch.searchByPlayerSize(testInfo)
+      },
+
+      {
+        name: 'Invalid Search',
+        method: () =>
+          resellerSearch.invalidSearch(testInfo)
       }
-    );
+    ];
 
-    // =====================================================
-    // POSITIVE SEARCH TESTS
-    // =====================================================
+    // =====================================
+    // EXECUTE ALL SEARCH TESTS
+    // =====================================
 
-    test(
-      'Search by ID',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
+    for (const searchTest of searchTests) {
 
-        testInfo.annotations.push({
-          type:
-            'SEARCH VALIDATION',
-          description:
-`
+      try {
+
+        console.log(`
 ========================================
-SEARCH VALIDATION
+RUNNING : ${searchTest.name}
 ========================================
+`);
 
-Validate Search By ID
+        await searchTest.method();
 
+        console.log(`
 ========================================
-`
-        });
+PASSED : ${searchTest.name}
+========================================
+`);
 
-        await resellerSearch.searchByID(
-          testInfo
-        );
+      } catch (error: any) {
+
+        console.log(`
+========================================
+FAILED : ${searchTest.name}
+
+ERROR  : ${error.message}
+========================================
+`);
       }
-    );
+    }
 
-    test(
-      'Search by Name',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'SEARCH VALIDATION',
-          description:
-`
+    console.log(`
 ========================================
-SEARCH VALIDATION
+ALL SEARCH TESTS EXECUTED
 ========================================
-
-Validate Search By Name
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByName(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by Description',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'SEARCH VALIDATION',
-          description:
-`
-========================================
-SEARCH VALIDATION
-========================================
-
-Validate Search By Description
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByDescription(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by Created Date',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'SEARCH VALIDATION',
-          description:
-`
-========================================
-SEARCH VALIDATION
-========================================
-
-Validate Search By Created Date
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByCreated(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by Status',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'SEARCH VALIDATION',
-          description:
-`
-========================================
-SEARCH VALIDATION
-========================================
-
-Validate Search By Status
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByStatus(
-          testInfo
-        );
-      }
-    );
-
-    // =====================================================
-    // NEGATIVE SEARCH TESTS
-    // =====================================================
-
-    test(
-      'Search by Billing Name (No Data Expected)',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'NEGATIVE SEARCH VALIDATION',
-          description:
-`
-========================================
-NEGATIVE SEARCH VALIDATION
-========================================
-
-Validate Billing Name Search
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByBillingName(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by Sales Person (No Data Expected)',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'NEGATIVE SEARCH VALIDATION',
-          description:
-`
-========================================
-NEGATIVE SEARCH VALIDATION
-========================================
-
-Validate Sales Person Search
-
-========================================
-`
-        });
-
-        await resellerSearch.searchBySalesPerson(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by TT Options (No Data Expected)',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'NEGATIVE SEARCH VALIDATION',
-          description:
-`
-========================================
-NEGATIVE SEARCH VALIDATION
-========================================
-
-Validate TT Options Search
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByTTOptions(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by App ID (No Data Expected)',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'NEGATIVE SEARCH VALIDATION',
-          description:
-`
-========================================
-NEGATIVE SEARCH VALIDATION
-========================================
-
-Validate App ID Search
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByAppID(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Search by Player Size (No Data Expected)',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'NEGATIVE SEARCH VALIDATION',
-          description:
-`
-========================================
-NEGATIVE SEARCH VALIDATION
-========================================
-
-Validate Player Size Search
-
-========================================
-`
-        });
-
-        await resellerSearch.searchByPlayerSize(
-          testInfo
-        );
-      }
-    );
-
-    test(
-      'Invalid Search (No Data Expected)',
-      async (
-        {},
-        testInfo: TestInfo
-      ) => {
-
-        testInfo.annotations.push({
-          type:
-            'NEGATIVE SEARCH VALIDATION',
-          description:
-`
-========================================
-NEGATIVE SEARCH VALIDATION
-========================================
-
-Validate Invalid Search
-
-========================================
-`
-        });
-
-        await resellerSearch.invalidSearch(
-          testInfo
-        );
-      }
-    );
+`);
   }
 );

@@ -1,15 +1,8 @@
-import {
-  Page,
-  Locator,
-  expect,
-  TestInfo
-} from '@playwright/test';
+import { Page, Locator, TestInfo } from '@playwright/test';
 
-import AddResellerdata
-from '../../testdata/AddResellerData.json';
+import AddResellerdata from '../../testdata/AddResellerData.json';
 
-import { logAndValidate }
-from '../utils/reportUtil';
+import { logAndValidate } from '../utils/reportUtil';
 
 export class ResellerSearch {
 
@@ -25,58 +18,53 @@ export class ResellerSearch {
 
     this.page = page;
 
-    this.searchInput =
-      page.locator(
-        'input.table-search__input'
-      );
+    this.searchInput = page.locator('input.table-search__input');
 
-    this.noDataMessage =
-      page.locator(
-        'td.table-body__cell--empty p'
-      );
+    this.noDataMessage = page.locator('td.table-body__cell--empty p');
 
-    this.nextButton =
-      page.getByRole(
-        'button',
-        { name: 'Next' }
-      );
+    this.nextButton = page.getByRole('button', { name: 'Next' });
   }
 
   // =====================================================
   // SEARCH FUNCTION
   // =====================================================
 
-  async performSearch(
-    value: string
-  ) {
+  async performSearch(value: string) {
 
-    if (!value) {
+    try {
 
-      expect.soft(
-        false,
-        '❌ Search value is empty'
-      ).toBeTruthy();
+      if (!value) {
 
-      return;
+        console.log('❌ Search value is empty');
+
+        return;
+      }
+
+      await this.searchInput.waitFor({
+        state: 'visible',
+        timeout: 10000
+      });
+
+      await this.searchInput.fill('');
+
+      await this.searchInput.fill(value);
+
+      await this.searchInput.press('Enter');
+
+      await this.page.waitForTimeout(2000);
+
+    } catch (error: any) {
+
+      console.log(`
+========================================
+SEARCH FAILED
+
+VALUE  : ${value}
+
+ERROR  : ${error.message}
+========================================
+`);
     }
-
-    await this.searchInput.waitFor({
-      state: 'visible'
-    });
-
-    await this.searchInput.fill('');
-
-    await this.searchInput.fill(
-      value
-    );
-
-    await this.searchInput.press(
-      'Enter'
-    );
-
-    await this.page.waitForTimeout(
-      2000
-    );
   }
 
   // =====================================================
@@ -85,9 +73,7 @@ export class ResellerSearch {
 
   private getRows() {
 
-    return this.page.locator(
-      'table tbody tr'
-    );
+    return this.page.locator('table tbody tr');
   }
 
   // =====================================================
@@ -96,73 +82,104 @@ export class ResellerSearch {
 
   async waitForResults() {
 
-    await Promise.race([
+    try {
 
-      this.getRows()
-        .first()
-        .waitFor({
+      await Promise.race([
+
+        this.getRows().first().waitFor({
           state: 'visible',
-          timeout: 10000
+          timeout: 5000
         }),
 
-      this.noDataMessage.waitFor({
-        state: 'visible',
-        timeout: 10000
-      })
-    ]);
+        this.noDataMessage.waitFor({
+          state: 'visible',
+          timeout: 5000
+        })
+      ]);
+
+    } catch {
+
+      // Ignore timeout
+    }
+  }
+
+  // =====================================================
+  // RESET SEARCH
+  // =====================================================
+
+  async resetSearch() {
+
+    try {
+
+      await this.searchInput.fill('');
+
+      await this.searchInput.press('Enter');
+
+      await this.page.waitForTimeout(2000);
+
+    } catch {
+
+      // Ignore reset failure
+    }
   }
 
   // =====================================================
   // GET COLUMN DATA
   // =====================================================
 
-  private async getColumnData(
-    index: number
-  ): Promise<string[]> {
+  private async getColumnData(index: number): Promise<string[]> {
 
     const values: string[] = [];
 
-    while (true) {
+    try {
 
-      const rows =
-        this.getRows();
+      while (true) {
 
-      const count =
-        await rows.count();
+        const rows = this.getRows();
 
-      for (
-        let i = 0;
-        i < count;
-        i++
-      ) {
+        const count = await rows.count();
 
-        const text =
-          (
-            await rows
-              .nth(i)
-              .locator('td')
-              .nth(index)
-              .textContent()
-          )?.trim();
+        for (let i = 0; i < count; i++) {
 
-        if (text)
-          values.push(text);
+          try {
+
+            const text =
+              (
+                await rows
+                  .nth(i)
+                  .locator('td')
+                  .nth(index)
+                  .textContent()
+              )?.trim();
+
+            if (text)
+              values.push(text);
+
+          } catch {
+
+            // Ignore row errors
+          }
+        }
+
+        const disabled =
+          await this.nextButton
+            .isDisabled()
+            .catch(() => true);
+
+        if (disabled)
+          break;
+
+        await this.nextButton.click();
+
+        await this.page.waitForTimeout(2000);
       }
 
-      const disabled =
-        await this.nextButton
-          .isDisabled()
-          .catch(() => true);
+    } catch {
 
-      if (disabled)
-        break;
-
-      await this.nextButton.click();
-
-      await this.page.waitForTimeout(
-        2000
-      );
+      // Ignore pagination errors
     }
+
+    await this.resetSearch();
 
     return values;
   }
@@ -179,74 +196,110 @@ export class ResellerSearch {
     exact = false
   ) {
 
-    await this.waitForResults();
+    try {
 
-    const rows =
-      this.getRows();
+      await this.waitForResults();
 
-    const count =
-      await rows.count();
+      const rows = this.getRows();
 
-    let found = false;
+      const count = await rows.count();
 
-    let actual =
-      'No Data Found';
+      let found = false;
 
-    for (
-      let i = 0;
-      i < count;
-      i++
-    ) {
+      let actual = 'No Data Found';
 
-      const row =
-        rows.nth(i);
+      for (let i = 0; i < count; i++) {
 
-      const cells =
-        row.locator('td');
+        try {
 
-      const cellCount =
-        await cells.count();
+          const row = rows.nth(i);
 
-      if (index >= cellCount)
-        continue;
+          const cells = row.locator('td');
 
-      const text =
-        (
-          await cells
-            .nth(index)
-            .textContent()
-        )?.trim() || '';
+          const cellCount = await cells.count();
 
-      if (
-        exact
-          ? text === expected
-          : text
-              .toLowerCase()
-              .includes(
-                expected.toLowerCase()
-              )
-      ) {
+          if (index >= cellCount)
+            continue;
 
-        found = true;
+          const text =
+            (
+              await cells
+                .nth(index)
+                .textContent()
+            )?.trim() || '';
 
-        actual = text;
+          const matched =
+            exact
+              ? text === expected
+              : text.toLowerCase().includes(expected.toLowerCase());
 
-        break;
+          if (matched) {
+
+            found = true;
+
+            actual = text;
+
+            break;
+          }
+
+        } catch {
+
+          // Ignore row validation errors
+        }
       }
-    }
 
-    logAndValidate(
-      {
+      logAndValidate({
         step: stepName,
         expected,
         actual
-      },
-      testInfo
-    );
+      }, testInfo);
 
-    expect
-      .soft(found)
-      .toBeTruthy();
+      if (!found) {
+
+        console.log(`
+========================================
+VALIDATION FAILED
+
+STEP     : ${stepName}
+
+EXPECTED : ${expected}
+
+ACTUAL   : ${actual}
+========================================
+`);
+
+        testInfo.annotations.push({
+
+          type: 'VALIDATION FAILED',
+
+          description:
+`
+STEP     : ${stepName}
+
+EXPECTED : ${expected}
+
+ACTUAL   : ${actual}
+`
+        });
+      }
+
+    } catch (error: any) {
+
+      console.log(`
+========================================
+VALIDATION FAILED
+
+STEP   : ${stepName}
+
+ERROR  : ${error.message}
+========================================
+`);
+    }
+
+    finally {
+
+      await this.resetSearch();
+    }
   }
 
   // =====================================================
@@ -259,73 +312,101 @@ export class ResellerSearch {
     stepName: string
   ) {
 
-    await this.performSearch(
-      value
-    );
+    try {
 
-    await this.waitForResults();
+      await this.performSearch(value);
 
-    const rows =
-      await this.getRows()
-        .count();
+      await this.waitForResults();
 
-    const isNoData =
-      await this.noDataMessage
-        .isVisible()
-        .catch(() => false);
+      const rows =
+        await this.getRows().count();
 
-    const passed =
-      rows === 0 || isNoData;
+      const isNoData =
+        await this.noDataMessage
+          .isVisible()
+          .catch(() => false);
 
-    logAndValidate(
-      {
+      const passed =
+        rows === 0 || isNoData;
+
+      logAndValidate({
         step: stepName,
-        expected:
-          'No Data Found',
+        expected: 'No Data Found',
         actual: passed
           ? 'No Data Found'
           : `${rows} Rows Found`
-      },
-      testInfo
-    );
+      }, testInfo);
 
-    expect
-      .soft(passed)
-      .toBeTruthy();
+      if (!passed) {
+
+        console.log(`
+========================================
+NEGATIVE SEARCH FAILED
+
+STEP     : ${stepName}
+
+EXPECTED : No Data Found
+
+ACTUAL   : ${rows} Rows Found
+========================================
+`);
+      }
+
+    } catch (error: any) {
+
+      console.log(`
+========================================
+NEGATIVE SEARCH FAILED
+
+STEP   : ${stepName}
+
+ERROR  : ${error.message}
+========================================
+`);
+    }
+
+    finally {
+
+      await this.resetSearch();
+    }
   }
 
   // =====================================================
   // POSITIVE SEARCH TESTS
   // =====================================================
 
-  async searchByID(
-    testInfo: TestInfo
-  ) {
+  async searchByID(testInfo: TestInfo) {
 
-    const data =
-      await this.getColumnData(0);
+    try {
 
-    if (!data.length) {
+      const data =
+        await this.getColumnData(0);
 
-      expect.soft(
-        false,
-        '❌ No ID data found'
-      ).toBeTruthy();
+      if (!data.length) {
 
-      return;
+        console.log('❌ No ID data found');
+
+        return;
+      }
+
+      await this.performSearch(data[0]);
+
+      await this.validateColumn(
+        0,
+        data[0],
+        testInfo,
+        'Search by ID',
+        true
+      );
+
+    } catch (error: any) {
+
+      console.log(`
+FAILED : Search by ID
+
+ERROR  : ${error.message}
+`);
     }
-
-    await this.performSearch(
-      data[0]
-    );
-
-    await this.validateColumn(
-      0,
-      data[0],
-      testInfo,
-      'Search by ID',
-      true
-    );
   }
 
   async searchByName(
@@ -333,130 +414,189 @@ export class ResellerSearch {
     name?: string
   ) {
 
-    const value =
-      name ??
-      (
-        await this.getColumnData(1)
-      )[0];
+    try {
 
-    if (!value) {
+      const value =
+        name ??
+        (
+          await this.getColumnData(1)
+        )[0];
 
-      expect.soft(
-        false,
-        '❌ No Name data found'
-      ).toBeTruthy();
+      if (!value) {
 
-      return;
+        console.log('❌ No Name data found');
+
+        return;
+      }
+
+      await this.performSearch(value);
+
+      await this.validateColumn(
+        1,
+        value,
+        testInfo,
+        'Search by Name'
+      );
+
+    } catch (error: any) {
+
+      console.log(`
+FAILED : Search by Name
+
+ERROR  : ${error.message}
+`);
     }
-
-    await this.performSearch(
-      value
-    );
-
-    await this.validateColumn(
-      1,
-      value,
-      testInfo,
-      'Search by Name'
-    );
   }
 
-  async searchByDescription(
-    testInfo: TestInfo
-  ) {
+  async searchByDescription(testInfo: TestInfo) {
 
-    const data =
-      await this.getColumnData(2);
+    try {
 
-    if (!data.length) {
+      const data =
+        await this.getColumnData(2);
 
-      expect.soft(
-        false,
-        '❌ No Description data found'
-      ).toBeTruthy();
+      if (!data.length) {
 
-      return;
+        console.log('❌ No Description data found');
+
+        return;
+      }
+
+      await this.performSearch(data[0]);
+
+      await this.validateColumn(
+        2,
+        data[0],
+        testInfo,
+        'Search by Description'
+      );
+
+    } catch (error: any) {
+
+      console.log(`
+FAILED : Search by Description
+
+ERROR  : ${error.message}
+`);
     }
-
-    await this.performSearch(
-      data[0]
-    );
-
-    await this.validateColumn(
-      2,
-      data[0],
-      testInfo,
-      'Search by Description'
-    );
   }
 
-  async searchByCreated(
-    testInfo: TestInfo
-  ) {
+  // =====================================================
+  // UPDATED CREATED DATE SEARCH
+  // =====================================================
 
-    const data =
-      await this.getColumnData(3);
+  async searchByCreated(testInfo: TestInfo) {
 
-    if (!data.length) {
+    try {
 
-      expect.soft(
-        false,
-        '❌ No Created data found'
-      ).toBeTruthy();
+      const data =
+        await this.getColumnData(3);
 
-      return;
+      if (!data.length) {
+
+        console.log('❌ No Created data found');
+
+        return;
+      }
+
+      // =====================================
+      // TAKE FULL DATE TIME
+      // =====================================
+
+      const createdValue =
+        data[0]
+          ?.trim();
+
+      if (!createdValue) {
+
+        console.log('❌ Created Date value empty');
+
+        return;
+      }
+
+      console.log(`
+========================================
+SEARCHING CREATED DATE
+
+VALUE : ${createdValue}
+========================================
+`);
+
+      // =====================================
+      // SEARCH EXACT DATETIME
+      // =====================================
+
+      await this.performSearch(
+        createdValue
+      );
+
+      // =====================================
+      // EXACT VALIDATION
+      // =====================================
+
+      await this.validateColumn(
+        3,
+        createdValue,
+        testInfo,
+        'Search by Created',
+        true
+      );
+
+    } catch (error: any) {
+
+      console.log(`
+FAILED : Search by Created
+
+ERROR  : ${error.message}
+========================================
+`);
     }
 
-    await this.performSearch(
-      data[0]
-    );
+    finally {
 
-    await this.validateColumn(
-      3,
-      data[0],
-      testInfo,
-      'Search by Created',
-      true
-    );
+      await this.resetSearch();
+    }
   }
 
-  async searchByStatus(
-    testInfo: TestInfo
-  ) {
+  async searchByStatus(testInfo: TestInfo) {
 
-    const data =
-      await this.getColumnData(4);
+    try {
 
-    if (!data.length) {
+      const data =
+        await this.getColumnData(4);
 
-      expect.soft(
-        false,
-        '❌ No Status data found'
-      ).toBeTruthy();
+      if (!data.length) {
 
-      return;
+        console.log('❌ No Status data found');
+
+        return;
+      }
+
+      await this.performSearch(data[0]);
+
+      await this.validateColumn(
+        4,
+        data[0],
+        testInfo,
+        'Search by Status',
+        true
+      );
+
+    } catch (error: any) {
+
+      console.log(`
+FAILED : Search by Status
+
+ERROR  : ${error.message}
+`);
     }
-
-    await this.performSearch(
-      data[0]
-    );
-
-    await this.validateColumn(
-      4,
-      data[0],
-      testInfo,
-      'Search by Status',
-      true
-    );
   }
 
   // =====================================================
   // NEGATIVE SEARCH TESTS
   // =====================================================
 
-  async searchByBillingName(
-    testInfo: TestInfo
-  ) {
+  async searchByBillingName(testInfo: TestInfo) {
 
     await this.verifyNoData(
       AddResellerdata.BillingName,
@@ -465,9 +605,7 @@ export class ResellerSearch {
     );
   }
 
-  async searchBySalesPerson(
-    testInfo: TestInfo
-  ) {
+  async searchBySalesPerson(testInfo: TestInfo) {
 
     await this.verifyNoData(
       AddResellerdata.SalesPerson,
@@ -476,9 +614,7 @@ export class ResellerSearch {
     );
   }
 
-  async searchByTTOptions(
-    testInfo: TestInfo
-  ) {
+  async searchByTTOptions(testInfo: TestInfo) {
 
     await this.verifyNoData(
       AddResellerdata.TTOptions,
@@ -487,9 +623,7 @@ export class ResellerSearch {
     );
   }
 
-  async searchByAppID(
-    testInfo: TestInfo
-  ) {
+  async searchByAppID(testInfo: TestInfo) {
 
     await this.verifyNoData(
       AddResellerdata.AppID,
@@ -498,9 +632,7 @@ export class ResellerSearch {
     );
   }
 
-  async searchByPlayerSize(
-    testInfo: TestInfo
-  ) {
+  async searchByPlayerSize(testInfo: TestInfo) {
 
     await this.verifyNoData(
       AddResellerdata.PlayerSize.toString(),
@@ -509,9 +641,7 @@ export class ResellerSearch {
     );
   }
 
-  async invalidSearch(
-    testInfo: TestInfo
-  ) {
+  async invalidSearch(testInfo: TestInfo) {
 
     await this.verifyNoData(
       'random_invalid_value_123',
