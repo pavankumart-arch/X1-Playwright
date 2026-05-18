@@ -1,9 +1,12 @@
-import { expect, Locator, Page, TestInfo } from '@playwright/test';
+import { Locator, Page, TestInfo, expect } from '@playwright/test';
 import { BasePage } from '../../BasePage';
-import { PaginationUtil } from '../../utils/pagination';
 import { logAndValidate } from '../../utils/reportUtil';
-import Adduserdata from '../../../testdata/AddUser.json' 
+import Adduserdata from '../../../testdata/AddUser.json';
+import { searchbyName } from '../../utils/Searchnew';
+
+
 export class AddUser extends BasePage {
+
   saveUserButton: Locator;
   cancelButton: Locator;
   addUserButton: Locator;
@@ -13,71 +16,176 @@ export class AddUser extends BasePage {
   reseller: Locator;
   email: Locator;
   activecheckbox: Locator;
+  searchInput: Locator;
 
-  // Store the expected username from the last addition
+  // Store latest created username
   private expectedUsername: string = '';
 
   constructor(page: Page) {
+
     super(page);
-    this.saveUserButton = page.getByRole('button', { name: 'Save User' });
-    this.cancelButton = page.getByRole('button', { name: 'Cancel' });
-    this.addUserButton = page.locator('[class="lucide lucide-plus"]');
-    this.username = page.getByPlaceholder('User Name');
-    this.password = page.getByPlaceholder('Password');
-    this.userType = page.locator('[id="react-aria3225870461-_r_fh_"]');
-    this.reseller = page.locator('[id="admin-User-create-resellerId"]');
-    this.email = page.getByPlaceholder('Email');
-    this.activecheckbox = page.locator('svg.lucide-check');
+
+    this.saveUserButton =
+      page.getByRole('button', { name: 'Save User' });
+
+    this.cancelButton =
+      page.getByRole('button', { name: 'Cancel' });
+
+    this.addUserButton =
+      page.locator('[class="lucide lucide-plus"]');
+
+    this.username =
+      page.getByPlaceholder('User Name');
+
+    this.password =
+      page.getByPlaceholder('Password');
+
+    this.userType =
+      page.locator('#admin-user-create-userTypeId');
+
+    this.reseller =
+      page.locator('#admin-user-create-resellerId');
+
+    this.email =
+      page.getByPlaceholder('Email');
+
+    this.activecheckbox =
+      page.locator('svg.lucide-check');
+
+    // Search Box
+
+    this.searchInput =
+      page.getByPlaceholder('Search');
   }
 
   async addUser() {
-    await this.fillElement(this.username, Adduserdata.username);
-    await this.fillElement(this.password, Adduserdata.password);
-    await this.selectOption(this.userType, Adduserdata.usertype);
-    await this.selectOption(this.reseller, Adduserdata.Reseller);
-    await this.fillElement(this.email, Adduserdata.email);
-    await this.clickOnElement(this.saveUserButton);
-    await this.addUserButton.waitFor({ state: 'visible' });
 
-    // Store the username we just added for later verification
-    this.expectedUsername = Adduserdata.username;
-  }
+    // Open Add User Form
 
-  /**
-   * Verifies that the added user appears in the summary table.
-   * Uses pagination utility to search across all pages.
-   * @param testInfo - Playwright TestInfo object for logging
-   * @returns true if found, false otherwise (soft assertion)
-   */
-  async verifyAddedUserIsDisplayed(testInfo: TestInfo): Promise<boolean> {
-    const paginationUtil = new PaginationUtil(this.page);
+    await this.addUserButton.click();
 
-    // Adjust selectors to match your actual summary table structure
-    const rowSelector = 'table tbody tr';   // e.g., "table tbody tr"
-    const usernameColumnIndex = 1;          // Username is the 2nd column (0-based)
-    const nextButtonSelector = 'button:has-text("Next ›")';
+    // Wait for Form
 
-    console.log(`🔍 Searching for user: "${this.expectedUsername}"`);
+    await this.username.waitFor({
+      state: 'visible'
+    });
 
-    const actualUsername = await paginationUtil.searchAcrossPages(
-      rowSelector,
-      usernameColumnIndex,
-      this.expectedUsername,
-      50,                    // max pages
-      nextButtonSelector
+    // Generate Unique Username
+
+    const uniqueUsername =
+      `${Adduserdata.username}_${Date.now()}`;
+
+    // Store Username
+
+    this.expectedUsername = uniqueUsername;
+
+    // Generate Unique Email
+
+    const emailParts =
+      Adduserdata.email.split('@');
+
+    const uniqueEmail =
+      `${emailParts[0]}_${Date.now()}@${emailParts[1]}`;
+
+    // Fill Username
+
+    await this.fillElement(
+      this.username,
+      uniqueUsername
     );
 
-    // Log and validate using the helper
+    // Fill Password
+
+    await this.fillElement(
+      this.password,
+      Adduserdata.password
+    );
+
+    // Select User Type
+
+    await this.userType.click();
+
+    const userTypeOptions =
+      this.page.locator('[role="option"]');
+
+    await userTypeOptions
+      .nth(Number(Adduserdata.usertype))
+      .click();
+
+    // Select Reseller
+
+    await this.reseller.click();
+
+    const resellerOptions =
+      this.page.locator('[role="option"]');
+
+    await resellerOptions
+      .nth(Number(Adduserdata.Reseller))
+      .click();
+
+    // Fill Email
+
+    await this.fillElement(
+      this.email,
+      uniqueEmail
+    );
+
+    // Click Save User
+
+    await this.clickOnElement(
+      this.saveUserButton
+    );
+
+    // Wait Until User Saved
+
+    await this.addUserButton.waitFor({
+      state: 'visible'
+    });
+
+    console.log(
+      `✅ User Created Successfully: ${this.expectedUsername}`
+    );
+  }
+
+  // Verify Added User in Table
+
+  async verifyAddedUserIsDisplayed(
+    testInfo: TestInfo
+  ): Promise<boolean> {
+
+    // Search User in Table
+
+    const userFound =
+      await searchbyName(
+        this.page,
+        this.searchInput,
+        this.expectedUsername,
+        'button:has-text("Next ›")',
+        'table tbody tr',
+        1
+      );
+
+    // Log Validation
+
     logAndValidate(
       {
-        step: 'Verify added user appears in summary table',
+        step:
+          'Verify added user appears in summary table',
+
         expected: this.expectedUsername,
-        actual: actualUsername ?? '(not found)',
+
+        actual:
+          userFound
+            ? this.expectedUsername
+            : '(not found)',
       },
       testInfo
     );
-    // Return true if found, false otherwise
-    return actualUsername !== null && actualUsername === this.expectedUsername;
-  }
 
+    // Assertion
+
+    expect(userFound).toBeTruthy();
+
+    return userFound;
+  }
 }

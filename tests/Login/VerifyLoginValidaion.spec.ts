@@ -1,37 +1,33 @@
 import { test } from '@playwright/test';
 import { LoginValidation } from '../../pages/Login/LoginValidation';
 
-test.describe('Login Validation Tests', () => {
+test.describe('Login Validation Test Suite', () => {
 
-    let validation: LoginValidation;  // ✅ Declare once
+    test(
+        'Verify all login validations',
+        async ({ page }, testInfo) => {
 
-    test.beforeEach(async ({ page }) => {
-        validation = new LoginValidation(page);  // ✅ Initialize once per test
-        await validation.navigatetoURL();
-    });
+            const loginValidation = new LoginValidation(page)
 
-    test('Empty Username & Password', async () => {
-        await validation.verifyEmptyCredentials();
-    });
+            await loginValidation.navigatetoURL()
 
-    test('Empty Username', async () => {
-        await validation.verifyEmptyUsername();
-    });
+            // ✅ Empty Username & Password
+            await loginValidation.verifyEmptyCredentials(testInfo)
 
-    test('Empty Password', async () => {
-        await validation.verifyEmptyPassword();
-    });
+            // ✅ Empty Username
+            await loginValidation.verifyEmptyUsername(testInfo)
 
-    test('Invalid Credentials', async () => {
-        await validation.verifyInvalidCredentials();
-    });
+            // ✅ Empty Password
+            await loginValidation.verifyEmptyPassword(testInfo)
 
-    test('Case Sensitive Password', async () => {
-        await validation.verifyCaseSensitivePassword();
-    });
+            // ✅ Invalid Credentials
+            await loginValidation.verifyInvalidCredentials(testInfo)
 
-    test('Valid Login', async () => {
-        await validation.verifyValidLogin();
-    });
+            // ✅ Case Sensitive Password
+            await loginValidation.verifyCaseSensitivePassword(testInfo)
 
-});
+            // ✅ Valid Login
+            await loginValidation.verifyValidLogin(testInfo)
+        }
+    )
+})
