@@ -37,16 +37,30 @@ export default defineConfig({
   },
 
   /* Configure projects for major browsers */
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+ projects: [
+  {
+    name: 'Google Chrome',
+    use: {
+      ...devices['Desktop Chrome'],
+      channel: 'chrome',
     },
+  },
 
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
+  // {
+  //   name: 'Microsoft Edge',
+  //   use: {
+  //     ...devices['Desktop Edge'],
+  //     channel: 'msedge',
+  //   },
+  // },
+
+  // {
+  //   name: 'firefox',
+  //   use: {
+  //     browserName: 'firefox',
+  //     ...devices['Desktop Firefox'],
+  //   },
+  // },
 
     // {
     //   name: 'webkit',
