@@ -9,6 +9,9 @@ import { LeftsideNavigation }
 import { EditUser }
   from '../../../pages/ApplicationConfig/Users/EditUser';
 
+import { logAndValidate }
+  from '../../../pages/utils/reportUtil';
+
 test.describe(
   'Verify the Update User functionality',
   () => {
@@ -27,26 +30,34 @@ test.describe(
         const editUser =
           new EditUser(page);
 
+        // ======================================================
         // LOGIN
+        // ======================================================
 
         await login.navigateToURL();
 
         await login.loginToApplication();
 
+        // ======================================================
         // NAVIGATE TO USERS
+        // ======================================================
 
         await navigation.gotoApplicationConfig();
 
         await navigation.goToUsers();
 
+        // ======================================================
         // COMPLETE FLOW
+        // ======================================================
 
         const result =
           await editUser.addAndEditUser(
             testInfo
           );
 
+        // ======================================================
         // FINAL ASSERTIONS
+        // ======================================================
 
         expect(
           result.addSuccess
@@ -60,7 +71,9 @@ test.describe(
           result.deleteSuccess
         ).toBeTruthy();
 
+        // ======================================================
         // CONSOLE SUMMARY
+        // ======================================================
 
         console.log(
           '\n' + '='.repeat(60)
@@ -106,7 +119,9 @@ test.describe(
           '='.repeat(60)
         );
 
+        // ======================================================
         // FIELD VALIDATIONS
+        // ======================================================
 
         for (
           const comparison
@@ -121,9 +136,16 @@ STATUS   : ${comparison.status}
 `);
         }
 
-        // REPORT SUMMARY
+        // ======================================================
+        // SUMMARY IN ANNOTATIONS
+        // ======================================================
 
-        const summary = `
+        testInfo.annotations.push({
+
+          type: 'SUMMARY',
+
+          description:
+`
 ============================================================
 UPDATE USER SUMMARY
 ============================================================
@@ -147,33 +169,27 @@ Delete Status   : ${
     ? 'PASS ✅'
     : 'FAIL ❌'
 }
-
-============================================================
-FIELD VALIDATIONS
-============================================================
-
-${result.fieldComparisons.map(
-  comparison => `
-FIELD    : ${comparison.field}
-
-EXPECTED : ${comparison.expected}
-
-ACTUAL   : ${comparison.actual}
-
-STATUS   : ${comparison.status}
 `
-).join('\n')}
-`;
+        });
 
-        // ATTACH TO PLAYWRIGHT REPORT
+        // ======================================================
+        // FIELD VALIDATIONS IN ANNOTATIONS
+        // ======================================================
 
-        await testInfo.attach(
-          'Update User Summary',
-          {
-            body: summary,
-            contentType: 'text/plain'
-          }
-        );
+        for (
+          const comparison
+          of result.fieldComparisons
+        ) {
+
+          logAndValidate(
+            {
+              step: comparison.field,
+              expected: comparison.expected,
+              actual: comparison.actual
+            },
+            testInfo
+          );
+        }
       }
     );
   }

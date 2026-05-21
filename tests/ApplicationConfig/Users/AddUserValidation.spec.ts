@@ -27,33 +27,34 @@ test.describe('User Validation', () => {
     await navigation.goToUsers();
 
     // ======================================================
-    // Click on Adduser button
+    // CLICK ON ADD USER BUTTON
     // ======================================================
+
     await userValidation.clickOnAddUserButton();
-    
 
-    // VERIFY SPELL CHECKS
+    // ======================================================
+    // VERIFY LABELS AND BUTTON TEXT
     // ======================================================
 
-    await userValidation.verifyspellcheckfortheinputfields(testInfo);
+    await userValidation.verifyLabelsAndButtonText(testInfo);
 
-//     // ======================================================
-//     // VERIFY PLACEHOLDERS
-//     // ======================================================
+    // ======================================================
+    // VERIFY PLACEHOLDER TEXT
+    // ======================================================
 
-//     await userValidation.verifyplaceholdertextfortheinputfields(testInfo);
+    await userValidation.verifyPlaceholderText(testInfo);
 
-//     // ======================================================
-//     // VERIFY REQUIRED VALIDATIONS
-//     // ======================================================
+    // ======================================================
+    // VERIFY REQUIRED FIELD VALIDATIONS
+    // ======================================================
 
-//     await userValidation.verifythevalidationmessagesfortheinputfields(testInfo);
+    await userValidation.verifyRequiredFieldValidations(testInfo);
 
-//     // ======================================================
-//     // VERIFY INVALID DATA VALIDATIONS
-//     // ======================================================
+    // ======================================================
+    // VERIFY INVALID FIELD VALIDATIONS
+    // ======================================================
 
-//     await userValidation.verifythevalidationmessagesfortheinputfieldswithinvaliddata(testInfo);
+    await userValidation.verifyInvalidFieldValidations(testInfo);
 
   });
 

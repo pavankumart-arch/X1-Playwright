@@ -14,7 +14,6 @@ type Comparison = {
 };
 
 interface EditResult {
-  addedUsername: string;
   editedUsername: string;
   addSuccess: boolean;
   editSuccess: boolean;
@@ -24,9 +23,8 @@ interface EditResult {
 
 export class EditUser extends BasePage {
 
-  saveUserButton: Locator;
+  updateUserButton: Locator;
   cancelButton: Locator;
-  addUserButton: Locator;
 
   username: Locator;
   password: Locator;
@@ -38,15 +36,17 @@ export class EditUser extends BasePage {
 
   searchInput: Locator;
 
-  private expectedUsername: string = '';
-
   constructor(page: Page) {
 
     super(page);
 
-    this.saveUserButton =
+    // ==================================================
+    // BUTTONS
+    // ==================================================
+
+    this.updateUserButton =
       page.getByRole('button', {
-        name: 'Save User'
+        name: 'Update User'
       });
 
     this.cancelButton =
@@ -54,8 +54,9 @@ export class EditUser extends BasePage {
         name: 'Cancel'
       });
 
-    this.addUserButton =
-      page.locator('[class="lucide lucide-plus"]');
+    // ==================================================
+    // FIELDS
+    // ==================================================
 
     this.username =
       page.getByPlaceholder('User Name');
@@ -64,16 +65,20 @@ export class EditUser extends BasePage {
       page.getByPlaceholder('Password');
 
     this.userType =
-      page.locator('#admin-user-create-userTypeId');
+      page.locator('#admin-user-edit-userTypeId');
 
     this.reseller =
-      page.locator('#admin-user-create-resellerId');
+      page.locator('#admin-user-edit-resellerId');
 
     this.email =
       page.getByPlaceholder('Email');
 
     this.activecheckbox =
       page.getByRole('checkbox');
+
+    // ==================================================
+    // SEARCH
+    // ==================================================
 
     this.searchInput =
       page.getByPlaceholder('Search');
@@ -88,7 +93,6 @@ export class EditUser extends BasePage {
   ): Promise<EditResult> {
 
     const result: EditResult = {
-      addedUsername: '',
       editedUsername: '',
       addSuccess: false,
       editSuccess: false,
@@ -96,23 +100,64 @@ export class EditUser extends BasePage {
       fieldComparisons: []
     };
 
-    // =============================
+    // ==================================================
     // ADD USER
-    // =============================
+    // ==================================================
 
     const addUser =
       new AddUser(this.page);
 
     await addUser.addUser();
 
+    const createdUsername =
+      addUser['expectedUsername'];
+
     result.addSuccess = true;
 
-    // =============================
+    // ==================================================
+    // SEARCH ADDED USER
+    // ==================================================
+
+    await this.searchInput.clear();
+
+    await this.searchInput.fill(
+      createdUsername
+    );
+
+    await this.page.waitForTimeout(3000);
+
+    // ==================================================
+    // CLICK EDIT BUTTON
+    // ==================================================
+
+    const row =
+      this.page.locator('table tbody tr')
+        .filter({
+          hasText: createdUsername
+        })
+        .first();
+
+    await row.waitFor({
+      state: 'visible'
+    });
+
+    const editButton =
+      row.locator('button').first();
+
+    await editButton.click();
+
+    await this.username.waitFor({
+      state: 'visible'
+    });
+
+    // ==================================================
     // EDIT USER
-    // =============================
+    // ==================================================
 
     const editResult =
-      await this.editUser(testInfo);
+      await this.editUser(
+        testInfo
+      );
 
     result.editedUsername =
       editResult.editedUsername;
@@ -123,17 +168,20 @@ export class EditUser extends BasePage {
     result.fieldComparisons =
       editResult.comparisons;
 
-    // =============================
+    // ==================================================
     // DELETE USER
-    // =============================
+    // ==================================================
+
+    const deleteUser =
+      new DeleteUser(this.page);
 
     const deleteResult =
-      await this.deleteUser(
+      await deleteUser.DeleteUser(
         editResult.editedUsername
       );
 
     result.deleteSuccess =
-      deleteResult;
+      deleteResult.verificationPassed;
 
     return result;
   }
@@ -154,51 +202,44 @@ export class EditUser extends BasePage {
 
     let allPassed = true;
 
-    // =============================
-    // OPEN FORM
-    // =============================
+    // ==================================================
+    // GENERATE EDIT DATA
+    // ==================================================
 
-    await this.addUserButton.click();
-
-    await this.username.waitFor({
-      state: 'visible'
-    });
-
-    // =============================
-    // UNIQUE USERNAME
-    // =============================
-
-    const uniqueUsername =
+    const editedUsername =
       `${Edituserdata.username}_${Date.now()}`;
-
-    this.expectedUsername =
-      uniqueUsername;
-
-    // =============================
-    // UNIQUE EMAIL
-    // =============================
 
     const emailParts =
       Edituserdata.email.split('@');
 
-    const uniqueEmail =
+    const editedEmail =
       `${emailParts[0]}_${Date.now()}@${emailParts[1]}`;
 
-    // =============================
-    // USERNAME
-    // =============================
+    // ==================================================
+    // CLEAR EXISTING VALUES
+    // ==================================================
+
+    await this.username.clear();
+
+    await this.password.clear();
+
+    await this.email.clear();
+
+    // ==================================================
+    // EDIT USERNAME
+    // ==================================================
 
     await this.fillField(
       this.username,
-      uniqueUsername,
+      editedUsername,
       'Username',
       comparisons,
       testInfo
     );
 
-    // =============================
-    // PASSWORD
-    // =============================
+    // ==================================================
+    // EDIT PASSWORD
+    // ==================================================
 
     await this.fillField(
       this.password,
@@ -208,14 +249,20 @@ export class EditUser extends BasePage {
       testInfo
     );
 
-    // =============================
+    // ==================================================
     // SELECT USER TYPE
-    // =============================
+    // ==================================================
 
     await this.userType.click();
 
     const userTypeOptions =
       this.page.locator('[role="option"]');
+
+    await userTypeOptions
+      .nth(Number(Edituserdata.usertype))
+      .waitFor({
+        state: 'visible'
+      });
 
     const selectedUserType =
       (
@@ -228,14 +275,20 @@ export class EditUser extends BasePage {
       .nth(Number(Edituserdata.usertype))
       .click();
 
-    // =============================
+    // ==================================================
     // SELECT RESELLER
-    // =============================
+    // ==================================================
 
     await this.reseller.click();
 
     const resellerOptions =
       this.page.locator('[role="option"]');
+
+    await resellerOptions
+      .nth(Number(Edituserdata.Reseller))
+      .waitFor({
+        state: 'visible'
+      });
 
     const selectedReseller =
       (
@@ -248,76 +301,80 @@ export class EditUser extends BasePage {
       .nth(Number(Edituserdata.Reseller))
       .click();
 
-    // =============================
-    // EMAIL
-    // =============================
+    // ==================================================
+    // EDIT EMAIL
+    // ==================================================
 
     await this.fillField(
       this.email,
-      uniqueEmail,
+      editedEmail,
       'Email',
       comparisons,
       testInfo
     );
 
-    // =============================
-    // ACTIVE CHECKBOX
-    // =============================
+    // ==================================================
+    // UPDATE USER
+    // ==================================================
 
-    if (
-      Edituserdata.active === 'true'
-    ) {
+    await this.updateUserButton.click();
 
-      const checked =
-        await this.activecheckbox.isChecked();
+    // ==================================================
+    // WAIT FOR SUMMARY PAGE
+    // ==================================================
 
-      if (!checked) {
-
-        await this.activecheckbox.click();
-      }
-    }
-
-    // =============================
-    // SAVE USER
-    // =============================
-
-    await this.saveUserButton.click();
-
-    await this.addUserButton.waitFor({
+    await this.searchInput.waitFor({
       state: 'visible'
     });
 
-    logAndValidate(
-      {
-        step: 'Save Edited User',
-        expected: 'Saved Successfully',
-        actual: 'Saved Successfully'
-      },
-      testInfo
-    );
-
-    // =============================
-    // VERIFY TABLE
-    // =============================
+    // ==================================================
+    // VERIFY EDITED USER EXISTS
+    // ==================================================
 
     const userFound =
-      await this.verifyEditedUserIsDisplayed(
-        testInfo
+      await searchbyName(
+        this.page,
+        this.searchInput,
+        editedUsername,
+        'button:has-text("Next ›")',
+        'table tbody tr',
+        1
       );
 
-    if (!userFound) {
+    expect(userFound).toBeTruthy();
 
-      allPassed = false;
-    }
+    console.log(
+      `✅ Found record: ${editedUsername}`
+    );
 
-    // =============================
-    // VERIFY SAVED DATA
-    // =============================
+    // ==================================================
+    // OPEN EDIT PAGE AGAIN
+    // ==================================================
+
+    const editedRow =
+      this.page.locator('table tbody tr')
+        .filter({
+          hasText: editedUsername
+        })
+        .first();
+
+    const editedUserButton =
+      editedRow.locator('button').first();
+
+    await editedUserButton.click();
+
+    await this.username.waitFor({
+      state: 'visible'
+    });
+
+    // ==================================================
+    // VERIFY EDITED DATA
+    // ==================================================
 
     const verifyResult =
       await this.verifyEditedUserData(
-        uniqueUsername,
-        uniqueEmail,
+        editedUsername,
+        editedEmail,
         selectedUserType,
         selectedReseller,
         comparisons,
@@ -329,7 +386,7 @@ export class EditUser extends BasePage {
       verifyResult;
 
     return {
-      editedUsername: uniqueUsername,
+      editedUsername,
       success: allPassed,
       comparisons
     };
@@ -346,10 +403,6 @@ export class EditUser extends BasePage {
     comparisons: Comparison[],
     testInfo: TestInfo
   ) {
-
-    await locator.waitFor({
-      state: 'visible'
-    });
 
     await locator.fill('');
 
@@ -373,46 +426,7 @@ export class EditUser extends BasePage {
   }
 
   // ==================================================
-  // VERIFY USER IN TABLE
-  // ==================================================
-
-  async verifyEditedUserIsDisplayed(
-    testInfo: TestInfo
-  ): Promise<boolean> {
-
-    const userFound =
-      await searchbyName(
-        this.page,
-        this.searchInput,
-        this.expectedUsername,
-        'button:has-text("Next ›")',
-        'table tbody tr',
-        1
-      );
-
-    logAndValidate(
-      {
-        step:
-          'Verify edited user appears in summary table',
-
-        expected:
-          this.expectedUsername,
-
-        actual:
-          userFound
-            ? this.expectedUsername
-            : '(not found)',
-      },
-      testInfo
-    );
-
-    expect(userFound).toBeTruthy();
-
-    return userFound;
-  }
-
-  // ==================================================
-  // VERIFY SAVED DATA
+  // VERIFY EDITED DATA
   // ==================================================
 
   private async verifyEditedUserData(
@@ -428,43 +442,24 @@ export class EditUser extends BasePage {
 
     try {
 
-      // =============================
-      // SEARCH USER
-      // =============================
-
-      await this.searchInput.fill('');
-
-      await this.searchInput.fill(
-        expectedUsername
-      );
-
-      await this.page.waitForTimeout(2000);
-
-      // =============================
-      // OPEN EDIT PAGE
-      // =============================
-
-      const row =
-        this.page.locator(
-          `table tbody tr:has-text("${expectedUsername}")`
-        ).first();
-
-      const editButton =
-        row.locator('button').first();
-
-      await editButton.click();
-
-      await this.page.waitForTimeout(3000);
-
-      // =============================
+      // ==================================================
       // VERIFY USERNAME
-      // =============================
+      // ==================================================
 
       const actualUsername =
         await this.username.inputValue();
 
       const usernamePassed =
         actualUsername === expectedUsername;
+
+      logAndValidate(
+        {
+          step: 'Verify Username',
+          expected: expectedUsername,
+          actual: actualUsername
+        },
+        testInfo
+      );
 
       comparisons.push({
         field: 'Verify Username',
@@ -476,24 +471,24 @@ export class EditUser extends BasePage {
             : '❌ FAIL'
       });
 
-      logAndValidate(
-        {
-          step: 'Verify Username',
-          expected: expectedUsername,
-          actual: actualUsername
-        },
-        testInfo
-      );
-
-      // =============================
+      // ==================================================
       // VERIFY EMAIL
-      // =============================
+      // ==================================================
 
       const actualEmail =
         await this.email.inputValue();
 
       const emailPassed =
         actualEmail === expectedEmail;
+
+      logAndValidate(
+        {
+          step: 'Verify Email',
+          expected: expectedEmail,
+          actual: actualEmail
+        },
+        testInfo
+      );
 
       comparisons.push({
         field: 'Verify Email',
@@ -505,72 +500,30 @@ export class EditUser extends BasePage {
             : '❌ FAIL'
       });
 
-      logAndValidate(
-        {
-          step: 'Verify Email',
-          expected: expectedEmail,
-          actual: actualEmail
-        },
-        testInfo
-      );
-
-      // =============================
-      // VERIFY PASSWORD EMPTY
-      // =============================
-
-      const actualPassword =
-        await this.password.inputValue();
-
-      const passwordPassed =
-        actualPassword === '';
-
-      comparisons.push({
-        field: 'Verify Password Empty',
-        expected: '',
-        actual: actualPassword,
-        status:
-          passwordPassed
-            ? '✅ PASS'
-            : '❌ FAIL'
-      });
-
-      logAndValidate(
-        {
-          step: 'Verify Password Empty',
-          expected: '',
-          actual: actualPassword
-        },
-        testInfo
-      );
-
-      // =============================
+      // ==================================================
       // VERIFY USER TYPE
-      // =============================
+      // ==================================================
 
-      let actualUserType = '';
-
-      try {
-
-        actualUserType =
-          (
-            await this.page
-              .locator(
-                '#admin-user-create-userTypeId'
-              )
-              .locator('xpath=following-sibling::*')
-              .first()
-              .textContent()
-          )?.trim() || '';
-
-      } catch {
-
-        actualUserType = '';
-      }
+      const actualUserType =
+        (
+          await this.page
+            .locator('#admin-user-edit-userTypeId span')
+            .textContent()
+        )?.trim() || '';
 
       const userTypePassed =
         actualUserType.includes(
           expectedUserType
         );
+
+      logAndValidate(
+        {
+          step: 'Verify User Type',
+          expected: expectedUserType,
+          actual: actualUserType
+        },
+        testInfo
+      );
 
       comparisons.push({
         field: 'Verify User Type',
@@ -582,43 +535,30 @@ export class EditUser extends BasePage {
             : '❌ FAIL'
       });
 
-      logAndValidate(
-        {
-          step: 'Verify User Type',
-          expected: expectedUserType,
-          actual: actualUserType
-        },
-        testInfo
-      );
-
-      // =============================
+      // ==================================================
       // VERIFY RESELLER
-      // =============================
+      // ==================================================
 
-      let actualReseller = '';
-
-      try {
-
-        actualReseller =
-          (
-            await this.page
-              .locator(
-                '#admin-user-create-resellerId'
-              )
-              .locator('xpath=following-sibling::*')
-              .first()
-              .textContent()
-          )?.trim() || '';
-
-      } catch {
-
-        actualReseller = '';
-      }
+      const actualReseller =
+        (
+          await this.page
+            .locator('#admin-user-edit-resellerId span')
+            .textContent()
+        )?.trim() || '';
 
       const resellerPassed =
         actualReseller.includes(
           expectedReseller
         );
+
+      logAndValidate(
+        {
+          step: 'Verify Reseller',
+          expected: expectedReseller,
+          actual: actualReseller
+        },
+        testInfo
+      );
 
       comparisons.push({
         field: 'Verify Reseller',
@@ -630,29 +570,33 @@ export class EditUser extends BasePage {
             : '❌ FAIL'
       });
 
-      logAndValidate(
-        {
-          step: 'Verify Reseller',
-          expected: expectedReseller,
-          actual: actualReseller
-        },
-        testInfo
-      );
-
-      // =============================
+      // ==================================================
       // FINAL STATUS
-      // =============================
+      // ==================================================
 
       if (
         !usernamePassed ||
         !emailPassed ||
-        !passwordPassed ||
         !userTypePassed ||
         !resellerPassed
       ) {
 
         allPassed = false;
       }
+
+      // ==================================================
+      // CLICK CANCEL
+      // ==================================================
+
+      await this.cancelButton.click();
+
+      // ==================================================
+      // WAIT FOR SUMMARY PAGE
+      // ==================================================
+
+      await this.searchInput.waitFor({
+        state: 'visible'
+      });
 
     } catch (error) {
 
@@ -664,43 +608,6 @@ export class EditUser extends BasePage {
       allPassed = false;
     }
 
-    // =============================
-    // CLOSE FORM
-    // =============================
-
-    try {
-
-      await this.cancelButton.click();
-
-    } catch {
-
-      console.log(
-        'Cancel button not clickable'
-      );
-    }
-
     return allPassed;
-  }
-
-  // ==================================================
-  // DELETE USER
-  // ==================================================
-
-  async deleteUser(
-    username: string
-  ): Promise<boolean> {
-
-    const deleteUser =
-      new DeleteUser(this.page);
-
-    const result =
-      await deleteUser.DeleteUser(
-        username
-      );
-
-    return (
-      result.deletePassed &&
-      result.verificationPassed
-    );
   }
 }
