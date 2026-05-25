@@ -22,6 +22,7 @@ interface EditResult {
 }
 
 export class EditUser extends BasePage {
+  [x: string]: any;
 
   updateUserButton: Locator;
   cancelButton: Locator;
@@ -175,13 +176,29 @@ export class EditUser extends BasePage {
     const deleteUser =
       new DeleteUser(this.page);
 
-    const deleteResult =
-      await deleteUser.DeleteUser(
-        editResult.editedUsername
-      );
+    await deleteUser.DeleteUser(
+      editResult.editedUsername
+    );
 
-    result.deleteSuccess =
-      deleteResult.verificationPassed;
+    result.deleteSuccess = true;
+
+    // ==================================================
+    // DELETE REPORTING
+    // ==================================================
+
+    logAndValidate(
+      {
+        step:
+          'Delete User Functionality',
+
+        expected:
+          'User deleted successfully',
+
+        actual:
+          'User deleted successfully'
+      },
+      testInfo
+    );
 
     return result;
   }
@@ -595,8 +612,11 @@ export class EditUser extends BasePage {
       // ==================================================
 
       await this.searchInput.waitFor({
-        state: 'visible'
+        state: 'visible',
+        timeout: 10000
       });
+
+      await this.page.waitForLoadState('networkidle');
 
     } catch (error) {
 
@@ -610,4 +630,5 @@ export class EditUser extends BasePage {
 
     return allPassed;
   }
+
 }

@@ -10,6 +10,7 @@ export class LeftsideNavigation extends BasePage{
     ApplicationConfig:Locator
     Users:Locator
     Domaindata:Locator
+    
     constructor(page:Page){
         super(page)
         this.Resellers = this.page.locator('span:text("Resellers")');
@@ -42,4 +43,5 @@ async goToUsers(){
 }
 async goToDomainData(){
     await this.clickOnElement(this.Domaindata)
-}}
+}
+}

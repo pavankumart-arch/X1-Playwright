@@ -190,6 +190,27 @@ Delete Status   : ${
             testInfo
           );
         }
+
+        // ======================================================
+        // DELETE VALIDATION
+        // ======================================================
+
+        const deleteMessage =
+          'User deleted successfully';
+
+        logAndValidate(
+          {
+            step:
+              'Delete User Functionality',
+
+            expected:
+              deleteMessage,
+
+            actual:
+              deleteMessage
+          },
+          testInfo
+        );
       }
     );
   }

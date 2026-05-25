@@ -1,87 +1,113 @@
 import { test }
-  from '@playwright/test';
+from '@playwright/test';
 
 import { LeftsideNavigation }
-  from '../../../pages/Navigations/LeftSideNavigation';
+from '../../../pages/Navigations/LeftSideNavigation';
 
 import { Login }
-  from '../../../pages/Login/Loginpage';
+from '../../../pages/Login/Loginpage';
 
 import { UserSearch }
-  from '../../../pages/ApplicationConfig/Users/Search';
+from '../../../pages/ApplicationConfig/Users/Search';
 
-test(
-  'Verify User Search Functionality',
-  async ({ page }, testInfo) => {
+test.describe(
+  'User Search Module',
+  () => {
 
-    // ============================================
-    // PAGE OBJECTS
-    // ============================================
+    test(
+      'Verify User Search Functionality',
 
-    const loginPage =
-      new Login(page);
+      async ({ page }, testInfo) => {
 
-    const navigation =
-      new LeftsideNavigation(page);
+        // ============================================
+        // TEST TIMEOUT
+        // ============================================
 
-    const search =
-      new UserSearch(page);
+        test.setTimeout(
+          120000
+        );
 
-    // ============================================
-    // LOGIN
-    // ============================================
+        // ============================================
+        // PAGE OBJECTS
+        // ============================================
 
-    await loginPage
-      .navigateToURL();
+        const loginPage =
+          new Login(page);
 
-    await loginPage
-      .loginToApplication();
+        const navigation =
+          new LeftsideNavigation(page);
 
-    await page.waitForLoadState(
-      'networkidle'
+        const search =
+          new UserSearch(page);
+
+        // ============================================
+        // LOGIN
+        // ============================================
+
+        await loginPage
+          .navigateToURL();
+
+        await loginPage
+          .loginToApplication();
+
+        await page.waitForLoadState(
+          'networkidle'
+        );
+
+        // ============================================
+        // NAVIGATE TO USERS PAGE
+        // ============================================
+
+        await navigation
+          .gotoApplicationConfig();
+
+        await navigation
+          .goToUsers();
+
+        await page.waitForLoadState(
+          'networkidle'
+        );
+
+        // ============================================
+        // USER SEARCH VALIDATIONS
+        // ============================================
+
+        await search
+          .searchByID(testInfo);
+
+        await search
+          .searchByUsername(testInfo);
+
+        await search
+          .searchByEmail(testInfo);
+
+        await search
+          .searchByReseller(testInfo);
+
+        await search
+          .searchByUserType(testInfo);
+
+        // ============================================
+        // ACTIVE SEARCH
+        // ============================================
+
+        await search
+          .searchByStatus(testInfo);
+
+        // ============================================
+        // INACTIVE SEARCH
+        // ============================================
+
+        await search
+          .searchByInactiveStatus(testInfo);
+
+        // ============================================
+        // INVALID SEARCH
+        // ============================================
+
+        await search
+          .invalidSearch(testInfo);
+      }
     );
-
-    // ============================================
-    // NAVIGATE TO USERS PAGE
-    // ============================================
-
-    await navigation
-      .gotoApplicationConfig();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
-
-    await navigation
-      .goToUsers();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
-
-    // ============================================
-    // USER SEARCH VALIDATIONS
-    // ============================================
-
-    await search
-      .searchByID(testInfo);
-
-    await search
-      .searchByUsername(testInfo);
-
-    await search
-      .searchByEmail(testInfo);
-
-    await search
-      .searchByReseller(testInfo);
-
-    await search
-      .searchByUserType(testInfo);
-
-    await search
-      .searchByStatus(testInfo);
-
-    await search
-      .invalidSearch(testInfo);
   }
 );

@@ -11,7 +11,7 @@ import {
 } from '../../../pages/Navigations/LeftSideNavigation';
 
 import {
-  UserSorting
+  UserSortingWithPagination
 } from '../../../pages/ApplicationConfig/Users/UserSorting';
 
 test.describe(
@@ -33,7 +33,7 @@ test.describe(
           new LeftsideNavigation(page);
 
         const sorting =
-          new UserSorting(page);
+          new UserSortingWithPagination(page);
 
         // =====================================================
         // LOGIN TO APPLICATION
@@ -62,7 +62,7 @@ test.describe(
         );
 
         console.log(
-          'Login Completed Successfully'
+          '✅ Login Completed Successfully'
         );
 
         // =====================================================
@@ -96,7 +96,7 @@ test.describe(
         );
 
         console.log(
-          'Users Page Opened Successfully'
+          '✅ Users Page Opened Successfully'
         );
 
         // =====================================================
@@ -116,26 +116,11 @@ test.describe(
         );
 
         // =====================================================
-        // EXECUTE SORTING VALIDATIONS
+        // VERIFY ALL COLUMNS SORTING
         // =====================================================
 
         await sorting
-          .sortByID(testInfo);
-
-        await sorting
-          .sortByUsername(testInfo);
-
-        await sorting
-          .sortByEmail(testInfo);
-
-        await sorting
-          .sortByReseller(testInfo);
-
-        await sorting
-          .sortByUserType(testInfo);
-
-        await sorting
-          .sortByStatus(testInfo);
+          .verifyAllColumnsSorting(testInfo);
 
         // =====================================================
         // COMPLETED
@@ -146,7 +131,7 @@ test.describe(
         );
 
         console.log(
-          'User Table Sorting Validation Completed Successfully'
+          '✅ User Table Sorting Validation Completed Successfully'
         );
 
         console.log(

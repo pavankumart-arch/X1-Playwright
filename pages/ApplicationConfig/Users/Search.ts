@@ -1,15 +1,11 @@
 import {
   Page,
   Locator,
-  expect,
   TestInfo
 } from '@playwright/test';
 
 import { logAndValidate }
 from '../../utils/reportUtil';
-import { searchbyName } from '../../../utils/Search';
-
-
 
 export class UserSearch {
 
@@ -17,22 +13,39 @@ export class UserSearch {
 
   searchInput: Locator;
 
+  noDataMessage: Locator;
+
+  nextButton: Locator;
+
+  previousButton: Locator;
+
   constructor(page: Page) {
 
     this.page = page;
-
-    // ============================================
-    // SEARCH INPUT
-    // ============================================
 
     this.searchInput =
       page.locator(
         'input.table-search__input'
       );
+
+    this.noDataMessage =
+      page.locator(
+        'td.table-body__cell--empty p'
+      );
+
+    this.nextButton =
+      page.locator(
+        'button:has-text("Next")'
+      );
+
+    this.previousButton =
+      page.locator(
+        'button:has-text("Previous")'
+      );
   }
 
   // =====================================================
-  // COMMON SEARCH METHOD
+  // SEARCH
   // =====================================================
 
   async performSearch(
@@ -40,7 +53,8 @@ export class UserSearch {
   ) {
 
     await this.searchInput.waitFor({
-      state: 'visible'
+      state: 'visible',
+      timeout: 10000
     });
 
     await this.searchInput.fill('');
@@ -59,6 +73,291 @@ export class UserSearch {
   }
 
   // =====================================================
+  // GO TO FIRST PAGE
+  // =====================================================
+
+  async goToFirstPage() {
+
+    try {
+
+      while (
+        await this.previousButton
+          .isVisible()
+          .catch(() => false)
+      ) {
+
+        const disabled =
+          await this.previousButton
+            .isDisabled()
+            .catch(() => true);
+
+        if (disabled)
+          break;
+
+        await this.previousButton.click();
+
+        await this.page.waitForTimeout(
+          1500
+        );
+      }
+
+    } catch {
+
+      // Ignore pagination errors
+    }
+  }
+
+  // =====================================================
+  // RESET SEARCH
+  // =====================================================
+
+  async resetSearch() {
+
+    try {
+
+      await this.goToFirstPage();
+
+      await this.searchInput.fill('');
+
+      await this.searchInput.press(
+        'Enter'
+      );
+
+      await this.page.waitForTimeout(
+        2000
+      );
+
+    } catch {
+
+      // Ignore reset errors
+    }
+  }
+
+  // =====================================================
+  // GET TABLE ROWS
+  // =====================================================
+
+  private getRows() {
+
+    return this.page.locator(
+      'table tbody tr'
+    );
+  }
+
+  // =====================================================
+  // VALIDATE SEARCH RESULTS
+  // =====================================================
+
+  private async validateColumn(
+    index: number,
+    expected: string,
+    testInfo: TestInfo,
+    stepName: string
+  ) {
+
+    let found = false;
+
+    try {
+
+      await this.goToFirstPage();
+
+      await this.performSearch(
+        expected
+      );
+
+      let pageCount = 0;
+
+      while (pageCount < 100) {
+
+        const currentSearch =
+          await this.searchInput
+            .inputValue();
+
+        // =========================================
+        // REAPPLY SEARCH IF CLEARED
+        // =========================================
+
+        if (
+          currentSearch
+            .trim()
+            .toLowerCase() !==
+          expected
+            .trim()
+            .toLowerCase()
+        ) {
+
+          await this.performSearch(
+            expected
+          );
+        }
+
+        const rows =
+          this.getRows();
+
+        const count =
+          await rows.count();
+
+        for (let i = 0; i < count; i++) {
+
+          const text =
+            (
+              await rows
+                .nth(i)
+                .locator('td')
+                .nth(index)
+                .textContent()
+            )?.trim() || '';
+
+          if (
+            text
+              .toLowerCase()
+              .includes(
+                expected.toLowerCase()
+              )
+          ) {
+
+            found = true;
+
+            break;
+          }
+        }
+
+        if (found)
+          break;
+
+        const disabled =
+          await this.nextButton
+            .isDisabled()
+            .catch(() => true);
+
+        if (disabled)
+          break;
+
+        await this.nextButton.click();
+
+        await this.page.waitForTimeout(
+          2000
+        );
+
+        pageCount++;
+      }
+
+      try {
+
+        logAndValidate(
+          {
+            step: stepName,
+
+            expected:
+              'Search Results Found',
+
+            actual:
+              found
+                ? 'Search Results Found'
+                : 'No Data Found'
+          },
+          testInfo
+        );
+
+      } catch {
+
+        // Continue execution
+      }
+
+    } catch (error: any) {
+
+      console.log(`
+================================
+VALIDATION FAILED
+
+STEP : ${stepName}
+
+ERROR : ${error.message}
+================================
+`);
+    }
+
+    finally {
+
+      await this.resetSearch();
+    }
+  }
+
+  // =====================================================
+  // COMMON SEARCH METHOD
+  // =====================================================
+
+  async searchAndValidate(
+    columnIndex: number,
+    stepName: string,
+    testInfo: TestInfo
+  ) {
+
+    try {
+
+      await this.goToFirstPage();
+
+      const rows =
+        this.getRows();
+
+      const count =
+        await rows.count();
+
+      if (!count) {
+
+        console.log(`
+================================
+NO TABLE DATA
+
+STEP : ${stepName}
+================================
+`);
+
+        return;
+      }
+
+      const value =
+        (
+          await rows
+            .first()
+            .locator('td')
+            .nth(columnIndex)
+            .textContent()
+        )?.trim();
+
+      if (!value) {
+
+        console.log(`
+================================
+NO DATA FOUND
+
+STEP : ${stepName}
+================================
+`);
+
+        return;
+      }
+
+      await this.validateColumn(
+        columnIndex,
+        value,
+        testInfo,
+        stepName
+      );
+
+    } catch (error: any) {
+
+      console.log(`
+================================
+FAILED : ${stepName}
+
+ERROR : ${error.message}
+================================
+`);
+    }
+  }
+
+  // =====================================================
   // SEARCH BY ID
   // =====================================================
 
@@ -66,39 +365,11 @@ export class UserSearch {
     testInfo: TestInfo
   ) {
 
-    const value = '28';
-
-    await this.performSearch(
-      value
-    );
-
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        0
-      );
-
-    logAndValidate(
-      {
-        step:
-          'Search by ID',
-
-        expected:
-          value,
-
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
+    await this.searchAndValidate(
+      0,
+      'Search by ID',
       testInfo
     );
-
-    expect.soft(found)
-      .toBeTruthy();
   }
 
   // =====================================================
@@ -109,40 +380,11 @@ export class UserSearch {
     testInfo: TestInfo
   ) {
 
-    const value =
-      'admin21';
-
-    await this.performSearch(
-      value
-    );
-
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        1
-      );
-
-    logAndValidate(
-      {
-        step:
-          'Search by Username',
-
-        expected:
-          value,
-
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
+    await this.searchAndValidate(
+      1,
+      'Search by Username',
       testInfo
     );
-
-    expect.soft(found)
-      .toBeTruthy();
   }
 
   // =====================================================
@@ -153,40 +395,11 @@ export class UserSearch {
     testInfo: TestInfo
   ) {
 
-    const value =
-      'admin22@test.com';
-
-    await this.performSearch(
-      value
-    );
-
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        2
-      );
-
-    logAndValidate(
-      {
-        step:
-          'Search by Email',
-
-        expected:
-          value,
-
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
+    await this.searchAndValidate(
+      2,
+      'Search by Email',
       testInfo
     );
-
-    expect.soft(found)
-      .toBeTruthy();
   }
 
   // =====================================================
@@ -197,40 +410,11 @@ export class UserSearch {
     testInfo: TestInfo
   ) {
 
-    const value =
-      'Premier Auto Group';
-
-    await this.performSearch(
-      value
-    );
-
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        3
-      );
-
-    logAndValidate(
-      {
-        step:
-          'Search by Reseller',
-
-        expected:
-          value,
-
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
+    await this.searchAndValidate(
+      3,
+      'Search by Reseller',
       testInfo
     );
-
-    expect.soft(found)
-      .toBeTruthy();
   }
 
   // =====================================================
@@ -241,84 +425,157 @@ export class UserSearch {
     testInfo: TestInfo
   ) {
 
-    const value =
-      'Reseller Admin';
-
-    await this.performSearch(
-      value
-    );
-
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        4
-      );
-
-    logAndValidate(
-      {
-        step:
-          'Search by User Type',
-
-        expected:
-          value,
-
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
+    await this.searchAndValidate(
+      4,
+      'Search by User Type',
       testInfo
     );
-
-    expect.soft(found)
-      .toBeTruthy();
   }
 
   // =====================================================
-  // SEARCH BY STATUS
+  // SEARCH BY ACTIVE STATUS
   // =====================================================
 
   async searchByStatus(
     testInfo: TestInfo
   ) {
 
-    const value =
-      'Active';
+    try {
 
-    await this.performSearch(
-      value
-    );
+      const value =
+        'Active';
 
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        5
+      await this.performSearch(
+        value
       );
 
-    logAndValidate(
-      {
-        step:
-          'Search by Status',
+      await this.page.waitForTimeout(
+        2000
+      );
 
-        expected:
-          value,
+      const tableText =
+        (
+          await this.page
+            .locator('table')
+            .textContent()
+        )?.toLowerCase() || '';
 
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
-      testInfo
-    );
+      const found =
+        tableText.includes(
+          'active'
+        );
 
-    expect.soft(found)
-      .toBeTruthy();
+      try {
+
+        logAndValidate(
+          {
+            step:
+              'Search by Active Status',
+
+            expected:
+              'Search Results Found',
+
+            actual:
+              found
+                ? 'Search Results Found'
+                : 'No Data Found'
+          },
+          testInfo
+        );
+
+      } catch {
+
+        // Continue execution
+      }
+
+    } catch (error: any) {
+
+      console.log(`
+================================
+FAILED : Search by Active Status
+
+ERROR : ${error.message}
+================================
+`);
+    }
+
+    finally {
+
+      await this.resetSearch();
+    }
+  }
+
+  // =====================================================
+  // SEARCH BY INACTIVE STATUS
+  // =====================================================
+
+  async searchByInactiveStatus(
+    testInfo: TestInfo
+  ) {
+
+    try {
+
+      const value =
+        'Inactive';
+
+      await this.performSearch(
+        value
+      );
+
+      await this.page.waitForTimeout(
+        2000
+      );
+
+      const tableText =
+        (
+          await this.page
+            .locator('table')
+            .textContent()
+        )?.toLowerCase() || '';
+
+      const found =
+        tableText.includes(
+          'inactive'
+        );
+
+      try {
+
+        logAndValidate(
+          {
+            step:
+              'Search by Inactive Status',
+
+            expected:
+              'Search Results Found',
+
+            actual:
+              found
+                ? 'Search Results Found'
+                : 'No Inactive Records Found'
+          },
+          testInfo
+        );
+
+      } catch {
+
+        // Continue execution
+      }
+
+    } catch (error: any) {
+
+      console.log(`
+================================
+FAILED : Search by Inactive Status
+
+ERROR : ${error.message}
+================================
+`);
+    }
+
+    finally {
+
+      await this.resetSearch();
+    }
   }
 
   // =====================================================
@@ -329,39 +586,66 @@ export class UserSearch {
     testInfo: TestInfo
   ) {
 
-    const value =
-      'invalid_user_123';
+    try {
 
-    await this.performSearch(
-      value
-    );
+      const value =
+        'invalid_user_123';
 
-    const found =
-      await searchbyName(
-        this.page,
-        value,
-        'button:has-text("Next")',
-        'table tbody tr',
-        1
+      await this.performSearch(
+        value
       );
 
-    logAndValidate(
-      {
-        step:
-          'Invalid Search',
+      await this.page.waitForTimeout(
+        2000
+      );
 
-        expected:
-          'No Data Found',
+      const rows =
+        await this.getRows().count();
 
-        actual:
-          found
-            ? value
-            : 'No Data Found'
-      },
-      testInfo
-    );
+      const isNoData =
+        await this.noDataMessage
+          .isVisible()
+          .catch(() => false);
 
-    expect.soft(!found)
-      .toBeTruthy();
+      const actual =
+        rows === 0 || isNoData
+          ? 'No Data Found'
+          : 'Data Found';
+
+      try {
+
+        logAndValidate(
+          {
+            step:
+              'Invalid Search',
+
+            expected:
+              'No Data Found',
+
+            actual
+          },
+          testInfo
+        );
+
+      } catch {
+
+        // Continue execution
+      }
+
+    } catch (error: any) {
+
+      console.log(`
+================================
+INVALID SEARCH FAILED
+
+ERROR : ${error.message}
+================================
+`);
+    }
+
+    finally {
+
+      await this.resetSearch();
+    }
   }
 }

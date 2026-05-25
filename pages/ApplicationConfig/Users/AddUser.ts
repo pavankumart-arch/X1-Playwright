@@ -6,6 +6,10 @@ import { searchbyName } from '../../utils/Searchnew';
 
 
 export class AddUser extends BasePage {
+  [x: string]: any;
+  AddUser() {
+    throw new Error('Method not implemented.');
+  }
 
   saveUserButton: Locator;
   cancelButton: Locator;

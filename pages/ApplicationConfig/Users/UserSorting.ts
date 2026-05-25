@@ -5,188 +5,566 @@ import {
 } from '@playwright/test';
 
 import {
-  validateColumnSortingWithPagination
-} from '../../utils/sorting';
+  logAndValidate
+} from '../../utils/reportUtil';
 
-// =====================================================
-// USER SORTING CLASS
-// =====================================================
+export class UserSortingWithPagination {
 
-export class UserSorting {
-
-  page: Page;
-
-  tableRows: Locator;
-
-  tableHeaders: Locator;
+  readonly page: Page;
+  readonly rows: Locator;
+  readonly headers: Locator;
+  readonly nextButton: Locator;
+  readonly prevButton: Locator;
 
   constructor(page: Page) {
 
     this.page = page;
 
-    // =====================================================
-    // TABLE LOCATORS
-    // =====================================================
+    this.rows =
+      page.locator('table tbody tr');
 
-    this.tableRows =
-      page.locator(
-        'table tbody tr'
-      );
+    this.headers =
+      page.locator('table thead th');
 
-    this.tableHeaders =
-      page.locator(
-        'table thead th'
-      );
+    this.nextButton =
+      page.getByRole('button', { name: 'Next' });
+
+    this.prevButton =
+      page.getByRole('button', { name: 'Prev' });
   }
 
-  // =====================================================
-  // COMMON SORT VALIDATION METHOD
-  // =====================================================
+  // ======================================================
+  // WAIT FOR TABLE LOAD
+  // ======================================================
 
-  async validateSorting(
+  async waitForTableLoad() {
+
+    await this.page.waitForLoadState(
+      'networkidle'
+    );
+
+    await this.rows
+      .first()
+      .waitFor({
+        state: 'visible'
+      });
+  }
+
+  // ======================================================
+  // GO TO FIRST PAGE
+  // ======================================================
+
+  async goToFirstPage() {
+
+    while (
+      await this.prevButton.isVisible() &&
+      await this.prevButton.isEnabled()
+    ) {
+
+      const before =
+        await this.rows
+          .first()
+          .textContent();
+
+      await this.prevButton.click();
+
+      await this.page.waitForFunction(
+        (oldVal) => {
+
+          const el =
+            document.querySelector(
+              'table tbody tr:first-child'
+            );
+
+          return (
+            el &&
+            el.textContent !== oldVal
+          );
+        },
+        before
+      );
+    }
+  }
+
+  // ======================================================
+  // GET COLUMN INDEX
+  // ======================================================
+
+  async getColumnIndex(
+    columnName: string
+  ): Promise<number> {
+
+    const count =
+      await this.headers.count();
+
+    for (let i = 0; i < count; i++) {
+
+      const text =
+        (
+          await this.headers
+            .nth(i)
+            .innerText()
+        ).trim();
+
+      if (
+        text
+          .toLowerCase()
+          .includes(
+            columnName.toLowerCase()
+          )
+      ) {
+
+        return i;
+      }
+    }
+
+    throw new Error(
+      `Column "${columnName}" not found`
+    );
+  }
+
+  // ======================================================
+  // GET COLUMN VALUES
+  // ======================================================
+
+  async getColumnValues(
+    columnIndex: number
+  ): Promise<any[]> {
+
+    const values: any[] = [];
+
+    const count =
+      await this.rows.count();
+
+    for (let i = 0; i < count; i++) {
+
+      const value =
+        (
+          await this.rows
+            .nth(i)
+            .locator('td')
+            .nth(columnIndex)
+            .textContent()
+        )?.trim();
+
+      if (value) {
+
+        values.push(
+          this.parseValue(value)
+        );
+      }
+    }
+
+    return values;
+  }
+
+  // ======================================================
+  // PARSE VALUE
+  // ======================================================
+
+  parseValue(
+    value: string
+  ): any {
+
+    const clean =
+      value.trim();
+
+    // ==================================================
+    // NUMBER
+    // ==================================================
+
+    if (
+      /^-?\d+(\.\d+)?$/.test(clean)
+    ) {
+
+      return Number(clean);
+    }
+
+    // ==================================================
+    // STRING
+    // ==================================================
+
+    return clean.toLowerCase();
+  }
+
+  // ======================================================
+  // DETECT SORT ORDER
+  // ======================================================
+
+  detectOrder(
+    values: any[]
+  ): 'ASC' | 'DESC' {
+
+    let ascCount = 0;
+    let descCount = 0;
+
+    for (
+      let i = 0;
+      i < values.length - 1;
+      i++
+    ) {
+
+      const current =
+        values[i];
+
+      const next =
+        values[i + 1];
+
+      // ==================================================
+      // NUMBER
+      // ==================================================
+
+      if (
+        typeof current === 'number' &&
+        typeof next === 'number'
+      ) {
+
+        if (current <= next) {
+          ascCount++;
+        }
+
+        if (current >= next) {
+          descCount++;
+        }
+      }
+
+      // ==================================================
+      // STRING
+      // ==================================================
+
+      else {
+
+        const comparison =
+          String(current).localeCompare(
+            String(next),
+            undefined,
+            {
+              numeric: true,
+              sensitivity: 'base'
+            }
+          );
+
+        if (comparison <= 0) {
+          ascCount++;
+        }
+
+        if (comparison >= 0) {
+          descCount++;
+        }
+      }
+    }
+
+    return descCount > ascCount
+      ? 'DESC'
+      : 'ASC';
+  }
+
+  // ======================================================
+  // VALIDATE VALUES
+  // ======================================================
+
+  validateValues(
+    values: any[],
+    order: 'ASC' | 'DESC'
+  ) {
+
+    for (
+      let i = 0;
+      i < values.length - 1;
+      i++
+    ) {
+
+      const current =
+        values[i];
+
+      const next =
+        values[i + 1];
+
+      let valid = false;
+
+      // ==================================================
+      // NUMBER SORTING
+      // ==================================================
+
+      if (
+        typeof current === 'number' &&
+        typeof next === 'number'
+      ) {
+
+        valid =
+          order === 'ASC'
+            ? current <= next
+            : current >= next;
+      }
+
+      // ==================================================
+      // STRING SORTING
+      // ==================================================
+
+      else {
+
+        const comparison =
+          String(current).localeCompare(
+            String(next),
+            undefined,
+            {
+              numeric: true,
+              sensitivity: 'base'
+            }
+          );
+
+        valid =
+          order === 'ASC'
+            ? comparison <= 0
+            : comparison >= 0;
+      }
+
+      // ==================================================
+      // FAIL
+      // ==================================================
+
+      if (!valid) {
+
+        return {
+          pass: false,
+
+          expected:
+            `${current} ${
+              order === 'ASC'
+                ? '<='
+                : '>='
+            } ${next}`,
+
+          actual:
+            `${current} ${
+              order === 'ASC'
+                ? '>'
+                : '<'
+            } ${next}`
+        };
+      }
+    }
+
+    // ==================================================
+    // PASS
+    // ==================================================
+
+    return {
+      pass: true,
+      expected: 'Sorted Correctly',
+      actual: 'Sorted Correctly'
+    };
+  }
+
+  // ======================================================
+  // VALIDATE ALL PAGES
+  // ======================================================
+
+  async validateAllPages(
+    columnIndex: number,
     columnName: string,
-    friendlyColumnName: string,
+    order: 'ASC' | 'DESC',
     testInfo: TestInfo
   ) {
 
-    console.log(
-      `\n================================================`
-    );
+    let pageNo = 1;
 
-    console.log(
-      `Starting ${friendlyColumnName} Column Sorting Validation`
-    );
+    while (true) {
 
-    console.log(
-      `================================================`
-    );
+      const values =
+        await this.getColumnValues(
+          columnIndex
+        );
 
-    // =====================================================
-    // ASCENDING SORT VALIDATION
-    // =====================================================
+      const result =
+        this.validateValues(
+          values,
+          order
+        );
 
-    console.log(
-      `Checking ${friendlyColumnName} Column in Ascending Order`
-    );
+      // ==================================================
+      // SUCCESS LOG
+      // ==================================================
 
-    try {
+      if (result.pass) {
 
-      await validateColumnSortingWithPagination(
-        this.page,
-        this.tableRows,
-        this.tableHeaders,
-        columnName,
+        console.log(
+          `✅ ${columnName} column sorting validated successfully on Page ${pageNo} (${order})`
+        );
+      }
+
+      // ==================================================
+      // FAILURE LOG
+      // ==================================================
+
+      else {
+
+        console.log(
+          `❌ Sorting issue in ${columnName} column on Page ${pageNo} (${order}) | Expected: ${result.expected} | Actual: ${result.actual}`
+        );
+      }
+
+      // ==================================================
+      // VALIDATION
+      // ==================================================
+
+      logAndValidate(
+        {
+          step:
+            `Sorting Validation | Column: ${columnName} | Page: ${pageNo} | Order: ${order}`,
+
+          expected:
+            result.expected,
+
+          actual:
+            result.actual
+        },
         testInfo
       );
 
-      console.log(
-        `✅ ${friendlyColumnName} Column Sorting Working Correctly`
-      );
+      // ==================================================
+      // NEXT PAGE
+      // ==================================================
+
+      if (
+        await this.nextButton.isVisible() &&
+        await this.nextButton.isEnabled()
+      ) {
+
+        const before =
+          await this.rows
+            .first()
+            .textContent();
+
+        await this.nextButton.click();
+
+        await this.page.waitForFunction(
+          (oldVal) => {
+
+            const el =
+              document.querySelector(
+                'table tbody tr:first-child'
+              );
+
+            return (
+              el &&
+              el.textContent !== oldVal
+            );
+          },
+          before
+        );
+
+        pageNo++;
+      }
+
+      else {
+
+        break;
+      }
     }
+  }
 
-    catch {
+  // ======================================================
+  // VERIFY SINGLE COLUMN SORTING
+  // ======================================================
 
-      console.log(
-        `❌ ${friendlyColumnName} Column Sorting NOT Working Correctly`
-      );
-    }
-
-    // =====================================================
-    // COMPLETED
-    // =====================================================
+  async verifyColumnSorting(
+    columnName: string,
+    testInfo: TestInfo
+  ) {
 
     console.log(
-      `Completed ${friendlyColumnName} Column Sorting Validation`
+      `🔍 Verifying sorting for ${columnName} column`
+    );
+
+    const columnIndex =
+      await this.getColumnIndex(
+        columnName
+      );
+
+    const header =
+      this.headers.nth(
+        columnIndex
+      );
+
+    // ==================================================
+    // FIRST CLICK
+    // ==================================================
+
+    await this.goToFirstPage();
+
+    await header.click();
+
+    await this.waitForTableLoad();
+
+    const firstPageValues =
+      await this.getColumnValues(
+        columnIndex
+      );
+
+    const firstOrder =
+      this.detectOrder(
+        firstPageValues
+      );
+
+    await this.validateAllPages(
+      columnIndex,
+      columnName,
+      firstOrder,
+      testInfo
+    );
+
+    // ==================================================
+    // SECOND CLICK
+    // ==================================================
+
+    await this.goToFirstPage();
+
+    await header.click();
+
+    await this.waitForTableLoad();
+
+    const secondPageValues =
+      await this.getColumnValues(
+        columnIndex
+      );
+
+    const secondOrder =
+      this.detectOrder(
+        secondPageValues
+      );
+
+    await this.validateAllPages(
+      columnIndex,
+      columnName,
+      secondOrder,
+      testInfo
     );
   }
 
-  // =====================================================
-  // SORT BY ID
-  // =====================================================
+  // ======================================================
+  // VERIFY ALL COLUMNS
+  // ======================================================
 
-  async sortByID(
+  async verifyAllColumnsSorting(
     testInfo: TestInfo
   ) {
 
-    await this.validateSorting(
+    const columns = [
       'ID',
-      'User ID',
-      testInfo
-    );
-  }
-
-  // =====================================================
-  // SORT BY USERNAME
-  // =====================================================
-
-  async sortByUsername(
-    testInfo: TestInfo
-  ) {
-
-    await this.validateSorting(
       'Username',
-      'Username',
-      testInfo
-    );
-  }
-
-  // =====================================================
-  // SORT BY EMAIL
-  // =====================================================
-
-  async sortByEmail(
-    testInfo: TestInfo
-  ) {
-
-    await this.validateSorting(
       'Email',
-      'Email Address',
-      testInfo
-    );
-  }
-
-  // =====================================================
-  // SORT BY RESELLER
-  // =====================================================
-
-  async sortByReseller(
-    testInfo: TestInfo
-  ) {
-
-    await this.validateSorting(
       'Reseller',
-      'Reseller',
-      testInfo
-    );
-  }
-
-  // =====================================================
-  // SORT BY USER TYPE
-  // =====================================================
-
-  async sortByUserType(
-    testInfo: TestInfo
-  ) {
-
-    await this.validateSorting(
       'User Type',
-      'User Type',
-      testInfo
-    );
-  }
+      'Status'
+    ];
 
-  // =====================================================
-  // SORT BY STATUS
-  // =====================================================
+    for (const column of columns) {
 
-  async sortByStatus(
-    testInfo: TestInfo
-  ) {
-
-    await this.validateSorting(
-      'Status',
-      'Status',
-      testInfo
-    );
+      await this.verifyColumnSorting(
+        column,
+        testInfo
+      );
+    }
   }
 }

@@ -1,32 +1,38 @@
+// UpdatedUser.ts
 import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from '../../BasePage';
-import EditUserdata from '../../../testdata/EditUser.json';
 
 export class UpdatedUser extends BasePage {
+  // Table locators
   searchInput: Locator;
   rows: Locator;
 
-  username: Locator;
-  password: Locator;
-  userType: Locator;
-  reseller: Locator;
-  email: Locator;
-  activeCheckbox: Locator;
+  // Edit form locators (more stable)
+  usernameInput: Locator;
+  passwordInput: Locator;
+  userTypeSelect: Locator;
+  resellerSelect: Locator;
+  emailInput: Locator;
+  activeCheckbox: Locator;        // custom checkbox – adjust selector as needed
   saveUserButton: Locator;
   cancelButton: Locator;
 
   constructor(page: Page) {
     super(page);
 
+    // Table
     this.searchInput = page.getByPlaceholder('Search...');
     this.rows = page.locator('table tbody tr');
 
-    this.username = page.getByPlaceholder('User Name');
-    this.password = page.getByPlaceholder('Password');
-    this.userType = page.locator('[id="react-aria3225870461-_r_fh_"]');
-    this.reseller = page.locator('[id="admin-User-create-resellerId"]');
-    this.email = page.getByPlaceholder('Email');
-    this.activeCheckbox = page.locator('svg.lucide-check');
+    // Form – use more reliable selectors (role, name, or data-testid)
+    this.usernameInput = page.getByPlaceholder('User Name');
+    this.passwordInput = page.getByPlaceholder('Password');
+    // Assuming user type is a <select> or a custom dropdown. Adapt to your app.
+    this.userTypeSelect = page.locator('select[name="userType"]'); 
+    this.resellerSelect = page.locator('select[name="resellerId"]');
+    this.emailInput = page.getByPlaceholder('Email');
+    // Custom checkbox: assume it has attribute data-state="checked" when active
+    this.activeCheckbox = page.locator('[role="checkbox"]');
     this.saveUserButton = page.getByRole('button', { name: 'Save User' });
     this.cancelButton = page.getByRole('button', { name: 'Cancel' });
   }
@@ -38,84 +44,67 @@ export class UpdatedUser extends BasePage {
     const matchedRow = this.rows.filter({
       has: this.page.locator('td:nth-child(2)', { hasText: username })
     });
-
-    // Click Edit button (first button in Actions column)
     const editButton = matchedRow.locator('td:last-child button').first();
     await editButton.click();
-    await this.page.waitForTimeout(1000);
+    // Wait for form to load – better to wait for a visible element
+    await expect(this.usernameInput).toBeVisible();
   }
 
-  async verifyUpdatedUserDetails(): Promise<void> {
-    let allPassed = true;
-
-    // Helper to safely convert any value to string
-    const asString = (value: any): string => String(value ?? '');
-
-    try {
-      // --- Username ---
-      const actualUsername = await this.username.inputValue();
-      const expectedUsername = asString(EditUserdata.username);
-      console.log(`Username – Expected: ${expectedUsername}, Actual: ${actualUsername}`);
-      if (actualUsername !== expectedUsername) allPassed = false;
-      expect.soft(actualUsername).toBe(expectedUsername);
-
-      // --- Password (visibility only) ---
-      await expect.soft(this.password).toBeVisible();
-
-      // --- User Type (dropdown) ---
-      let actualUserType = '';
-      try {
-        actualUserType = (await this.userType.locator('option:checked').textContent()) || '';
-      } catch {
-        actualUserType = (await this.userType.getAttribute('value')) || '';
+  async editUser(updates: {
+    username?: string;
+    password?: string;
+    userType?: string;
+    reseller?: string;
+    email?: string;
+    active?: boolean;
+  }) {
+    if (updates.username !== undefined) await this.usernameInput.fill(updates.username);
+    if (updates.password !== undefined) await this.passwordInput.fill(updates.password);
+    if (updates.userType !== undefined) await this.userTypeSelect.selectOption(updates.userType);
+    if (updates.reseller !== undefined) await this.resellerSelect.selectOption(updates.reseller);
+    if (updates.email !== undefined) await this.emailInput.fill(updates.email);
+    if (updates.active !== undefined) {
+      const isChecked = await this.activeCheckbox.getAttribute('data-state') === 'checked';
+      if (isChecked !== updates.active) {
+        await this.activeCheckbox.click();
       }
-      const expectedUserType = asString(EditUserdata.usertype);
-      console.log(`User Type – Expected: ${expectedUserType}, Actual: ${actualUserType}`);
-      if (actualUserType !== expectedUserType) allPassed = false;
-      expect.soft(actualUserType).toBe(expectedUserType);
-
-      // --- Reseller (dropdown) ---
-      let actualReseller = '';
-      try {
-        actualReseller = (await this.reseller.locator('option:checked').textContent()) || '';
-      } catch {
-        actualReseller = (await this.reseller.getAttribute('value')) || '';
-      }
-      const expectedReseller = asString(EditUserdata.Reseller);
-      console.log(`Reseller – Expected: ${expectedReseller}, Actual: ${actualReseller}`);
-      if (actualReseller !== expectedReseller) allPassed = false;
-      expect.soft(actualReseller).toBe(expectedReseller);
-
-      // --- Email ---
-      const actualEmail = await this.email.inputValue();
-      const expectedEmail = asString(EditUserdata.email);
-      console.log(`Email – Expected: ${expectedEmail}, Actual: ${actualEmail}`);
-      if (actualEmail !== expectedEmail) allPassed = false;
-      expect.soft(actualEmail).toBe(expectedEmail);
-
-      // --- Active checkbox (only if present in JSON) ---
-      if (EditUserdata.active !== undefined) {
-        const isChecked = await this.activeCheckbox.isVisible();
-        const expectedActive = EditUserdata.active === 'true';
-        console.log(`Active – Expected: ${expectedActive}, Actual: ${isChecked}`);
-        if (isChecked !== expectedActive) allPassed = false;
-        expect.soft(isChecked).toBe(expectedActive);
-      } else {
-        console.log('⚠️ "active" not found in EditUser.json – skipping checkbox verification');
-      }
-
-      // Cancel to return to summary
-      await this.cancelButton.click();
-
-    } catch (error) {
-      console.error('❌ Error during verification:', error);
-      allPassed = false;
     }
+  }
 
-    if (allPassed) {
-      console.log('✅ Updated User data verified successfully');
-    } else {
-      console.log('❌ Updated User verification failed – one or more fields did not match');
+  async saveAndWait() {
+    await this.saveUserButton.click();
+    // Wait for the table to reappear or a success message
+    await expect(this.searchInput).toBeVisible({ timeout: 5000 });
+  }
+
+  async verifyUserInTable(expected: {
+    username: string;
+    email: string;
+    userType: string;
+    reseller?: string;
+    active?: boolean;
+  }) {
+    await this.searchInput.fill(expected.username);
+    await expect(this.rows.first()).toBeVisible();
+
+    const matchedRow = this.rows.filter({
+      has: this.page.locator('td:nth-child(2)', { hasText: expected.username })
+    });
+
+    // Verify email column (adjust column index)
+    const actualEmail = await matchedRow.locator('td:nth-child(3)').textContent();
+    expect(actualEmail?.trim()).toBe(expected.email);
+
+    // Verify user type column
+    const actualUserType = await matchedRow.locator('td:nth-child(4)').textContent();
+    expect(actualUserType?.trim()).toBe(expected.userType);
+
+    // If active status is shown, verify it (e.g., column with icon/text)
+    if (expected.active !== undefined) {
+      const activeCell = matchedRow.locator('td:nth-child(5)');
+      // Adapt based on how active is displayed (e.g., 'Active' text or a checkmark)
+      const isActive = await activeCell.getByText('Active').isVisible();
+      expect(isActive).toBe(expected.active);
     }
   }
 }
