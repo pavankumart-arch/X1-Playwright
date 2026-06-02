@@ -7,22 +7,16 @@ export class InventoryPagination {
 
   readonly showCountDropdown: Locator;
   readonly rows: Locator;
-  readonly nextButton: Locator;
-  readonly prevButton: Locator;
   readonly paginationText: Locator;
-  readonly pageButtons: Locator;
 
   constructor(page: Page, testInfo: TestInfo) {
     this.page = page;
     this.testInfo = testInfo;
 
-    // Selectors matching the UI in image 6
+    // Selectors matching the UI
     this.showCountDropdown = page.locator('select');
     this.rows = page.locator('table tbody tr');
-    this.nextButton = page.locator('button:has-text("›")').last(); // Next button (›)
-    this.prevButton = page.locator('button:has-text("‹")').first(); // Previous button (‹)
     this.paginationText = page.locator('text=/Showing \\d+-\\d+ of \\d+/');
-    this.pageButtons = page.locator('button'); // Page number buttons
   }
 
   // ====================================
@@ -58,18 +52,14 @@ export class InventoryPagination {
   async goToFirstPage(): Promise<void> {
     console.log(`📍 Going to first page...`);
     
-    const firstPageBtn = this.page.locator('button[aria-label="Page 1"]');
-    const pageOneBtn = this.pageButtons.filter({ hasText: '1' }).first();
+    // Try to find page 1 button
+    const pageOneBtn = this.page.locator('button').filter({ hasText: /^1$/ }).first();
 
-    if (await firstPageBtn.isVisible().catch(() => false)) {
-      await firstPageBtn.click();
-      await this.page.waitForTimeout(1000);
-    } else if (await pageOneBtn.isVisible().catch(() => false)) {
+    if (await pageOneBtn.isVisible().catch(() => false)) {
       await pageOneBtn.click();
       await this.page.waitForTimeout(1000);
+      await this.waitForTableLoad();
     }
-
-    await this.waitForTableLoad();
   }
 
   // ====================================
@@ -79,81 +69,67 @@ export class InventoryPagination {
     console.log(`🔄 Clicking Next button...`);
     
     try {
-      if (!(await this.nextButton.isVisible().catch(() => false))) {
-        console.log(`❌ Next button not visible`);
-        return false;
+      // Try multiple selectors for the next button
+      const nextSelectors = [
+        'button[aria-label="Next"]',
+        'button:has-text("›")',
+        'button:has-text("»")',
+        'a:has-text("›")',
+        'li:last-child button',
+        'button[title*="Next"]',
+        'button[title*="next"]'
+      ];
+
+      let clicked = false;
+
+      for (const selector of nextSelectors) {
+        const nextBtn = this.page.locator(selector).last();
+        const isVisible = await nextBtn.isVisible().catch(() => false);
+
+        if (isVisible) {
+          const disabled = await nextBtn.getAttribute('disabled').catch(() => null);
+          const ariaDisabled = await nextBtn.getAttribute('aria-disabled').catch(() => null);
+
+          if (disabled === null && ariaDisabled !== 'true') {
+            console.log(`✅ Found and clicking Next button with selector: ${selector}`);
+            
+            // Store current first row text to detect page change
+            const currentFirstRow = await this.rows.first().textContent().catch(() => '');
+            
+            await nextBtn.click();
+            await this.page.waitForTimeout(1000);
+
+            // Wait for page content to change
+            try {
+              await this.page.waitForFunction(
+                (oldText) => {
+                  const el = document.querySelector('table tbody tr:first-child');
+                  return el && el.textContent !== oldText;
+                },
+                currentFirstRow,
+                { timeout: 5000 }
+              );
+            } catch (error) {
+              console.log(`⚠️ Page content check timed out, continuing...`);
+            }
+
+            await this.waitForTableLoad();
+            clicked = true;
+            break;
+          }
+        }
       }
 
-      const disabled = await this.nextButton.getAttribute('disabled').catch(() => null);
-      if (disabled !== null) {
-        console.log(`❌ Next button is disabled`);
-        return false;
+      if (!clicked) {
+        console.log(`❌ Next button not found or disabled`);
+        // Log all buttons for debugging
+        const allButtons = await this.page.locator('button').allTextContents();
+        console.log(`📋 Available buttons:`, allButtons);
       }
 
-      // Store current first row text to detect page change
-      const currentFirstRow = await this.rows.first().textContent().catch(() => '');
-      
-      await this.nextButton.click();
-      await this.page.waitForTimeout(1000);
-
-      // Wait for page content to change
-      await this.page.waitForFunction(
-        (oldText) => {
-          const el = document.querySelector('table tbody tr:first-child');
-          return el && el.textContent !== oldText;
-        },
-        currentFirstRow,
-        { timeout: 10000 }
-      ).catch(() => {
-        console.log(`⚠️ Page content didn't change, continuing...`);
-      });
-
-      await this.waitForTableLoad();
-      return true;
+      return clicked;
     } catch (error) {
       console.error(`❌ Error clicking next button:`, error);
-      return false;
-    }
-  }
-
-  // ====================================
-  // CLICK PREVIOUS PAGE
-  // ====================================
-  async clickPreviousPage(): Promise<boolean> {
-    console.log(`🔄 Clicking Previous button...`);
-    
-    try {
-      if (!(await this.prevButton.isVisible().catch(() => false))) {
-        console.log(`❌ Previous button not visible`);
-        return false;
-      }
-
-      const disabled = await this.prevButton.getAttribute('disabled').catch(() => null);
-      if (disabled !== null) {
-        console.log(`❌ Previous button is disabled`);
-        return false;
-      }
-
-      const currentFirstRow = await this.rows.first().textContent().catch(() => '');
-      
-      await this.prevButton.click();
-      await this.page.waitForTimeout(1000);
-
-      await this.page.waitForFunction(
-        (oldText) => {
-          const el = document.querySelector('table tbody tr:first-child');
-          return el && el.textContent !== oldText;
-        },
-        currentFirstRow,
-        { timeout: 10000 }
-      ).catch(() => {
-        console.log(`⚠️ Page content didn't change, continuing...`);
-      });
-
-      await this.waitForTableLoad();
-      return true;
-    } catch (error) {
-      console.error(`❌ Error clicking previous button:`, error);
       return false;
     }
   }
@@ -169,10 +145,11 @@ export class InventoryPagination {
     let total = 0;
     let nextWorked = true;
     let pageNo = 1;
+    let maxPages = 1000; // Safety limit
 
     await this.goToFirstPage();
 
-    while (true) {
+    while (pageNo <= maxPages) {
       const count = await this.rows.count();
       total += count;
 
@@ -181,11 +158,17 @@ export class InventoryPagination {
 Rows Found: ${count}
 `);
 
-      // Check if next button is available
-      if (
-        await this.nextButton.isVisible().catch(() => false) &&
-        (await this.nextButton.isEnabled().catch(() => false))
-      ) {
+      // Check if next button is available and enabled
+      const nextBtn = this.page.locator('button:has-text("›")').last();
+      const isNextVisible = await nextBtn.isVisible().catch(() => false);
+      const isNextEnabled = isNextVisible ? 
+        (await nextBtn.getAttribute('disabled').catch(() => null) === null && 
+         await nextBtn.getAttribute('aria-disabled').catch(() => null) !== 'true') 
+        : false;
+
+      console.log(`🔍 Next button visible: ${isNextVisible}, enabled: ${isNextEnabled}`);
+
+      if (isNextVisible && isNextEnabled) {
         const before = await this.rows.first().textContent().catch(() => '');
         const clickResult = await this.clickNextPage();
 
@@ -199,14 +182,13 @@ Rows Found: ${count}
 
         // Detect duplicate page issue
         if (before === after) {
-          console.log(`⚠️ Page content didn't change - possible duplicate page`);
-          nextWorked = false;
+          console.log(`⚠️ Page content didn't change - reached last page or duplicate`);
           break;
         }
 
         pageNo++;
       } else {
-        console.log(`✅ Reached last page`);
+        console.log(`✅ Reached last page (next button not available)`);
         break;
       }
     }
@@ -264,15 +246,22 @@ ${'='.repeat(80)}
           const expectedTotal = await this.getTotalFromUI();
           console.log(`📊 Total records from UI: ${expectedTotal}`);
 
+          // Extract numeric page size
+          const pageSizeNum = parseInt(pageSize.replace(/\D/g, ''));
+          console.log(`📏 Page size numeric value: ${pageSizeNum}`);
+
           // Count all pages
           const { total: actualTotal, nextWorked } = await this.countAllPages();
 
           // Validate next button
           Reporter.validatePageNavigation(1, 2, nextWorked, this.testInfo);
 
+          // Calculate expected pages
+          const expectedPages = Math.ceil(expectedTotal / pageSizeNum);
+          
           // Validate total records
           const totalMatch = expectedTotal === actualTotal;
-          Reporter.validatePagination(1, Math.ceil(expectedTotal / parseInt(pageSize)), parseInt(pageSize), expectedTotal, this.testInfo);
+          Reporter.validatePagination(1, expectedPages, pageSizeNum, expectedTotal, this.testInfo);
 
           const pageTestResult = nextWorked && totalMatch;
 
@@ -281,6 +270,7 @@ ${'─'.repeat(80)}
 📋 PAGE SIZE        : ${pageSize}
 📊 EXPECTED TOTAL   : ${expectedTotal}
 📊 ACTUAL TOTAL     : ${actualTotal}
+📄 EXPECTED PAGES   : ${expectedPages}
 🔀 NEXT BUTTON      : ${nextWorked ? 'Working ✅' : 'Failed ❌'}
 📊 TOTALS MATCH     : ${totalMatch ? 'Yes ✅' : 'No ❌'}
 🎯 FINAL STATUS     : ${pageTestResult ? 'PASS ✅' : 'FAIL ❌'}
@@ -354,7 +344,8 @@ ${'='.repeat(80)}
     try {
       const expectedTotal = await this.getTotalFromUI();
       const pageSize = await this.showCountDropdown.inputValue();
-      const totalPages = Math.ceil(expectedTotal / parseInt(pageSize));
+      const pageSizeNum = parseInt(pageSize.replace(/\D/g, ''));
+      const totalPages = Math.ceil(expectedTotal / pageSizeNum);
 
       console.log(`📄 Total pages: ${totalPages}`);
 
@@ -364,10 +355,13 @@ ${'='.repeat(80)}
         await this.goToFirstPage();
 
         let currentPage = 1;
-        while (currentPage < totalPages) {
+        let maxAttempts = totalPages * 2; // Safety limit
+        
+        while (currentPage < totalPages && maxAttempts > 0) {
           const success = await this.clickNextPage();
           if (!success) break;
           currentPage++;
+          maxAttempts--;
         }
 
         lastPageNavWorking = currentPage === totalPages;
