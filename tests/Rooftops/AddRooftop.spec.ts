@@ -1,60 +1,68 @@
 import { test, expect } from '@playwright/test';
-import { AddRooftop } from '../../pages/Rooftops/AddRooftop';
 import { Login } from '../../pages/Login/Loginpage';
 import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
-import { logAndValidate } from '../../utils/reportUtil';
+import { AddRooftop } from '../../pages/Rooftops/AddRooftop';
+import { RooftopNavigation } from '../../pages/Rooftops/RooftopNavigation';
+import AddRooftopData from '../../testdata/AddRooftopData.json';
 
-test("Add New Rooftop", async ({ page }, testInfo) => {
+test.describe('Rooftop Management', () => {
+
+test(
+'Verify User can Add New Rooftop and Validate in Summary Page',
+async ({ page }, testInfo) => {
 
   const loginPage = new Login(page);
+  const navigation = new LeftsideNavigation(page);
+  const rooftopPage = new AddRooftop(page);
+  const rooftopNavigation = new RooftopNavigation(page);
+
+  console.log('\n========================================');
+  console.log('STARTING ADD ROOFTOP TEST');
+  console.log('========================================\n');
+
+  // Login
   await loginPage.navigateToURL();
   await loginPage.loginToApplication();
 
-  const navigation = new LeftsideNavigation(page);
-
+  // Dashboard
   await navigation.goToDashboard();
   await page.waitForLoadState('networkidle');
 
+  // Resellers
   await navigation.goToResellers();
   await page.waitForLoadState('networkidle');
- 
 
-  const resellerName = "Premier Auto Group";
+  // Step 1 & Step 2
+  await rooftopNavigation.searchAndOpenRecord(
+    AddRooftopData.rooftopname,
+    testInfo
+  );
 
-  // STEP 1: Click on reseller
-  const resellerButton = page
-    .locator('table')
-    .getByRole('button', { name: resellerName })
-    .first();
-   
-  await resellerButton.click();
-  await page.waitForLoadState('networkidle');
-  ;
-  
-  //navigate to rooftops list
+  console.log(
+    `Successfully opened reseller : ${AddRooftopData.rooftopname}`
+  );
+
+  // Rooftop Summary
   await navigation.goToListofRooftops();
-  await page.waitForLoadState('networkidle')
-  // STEP 2: Add rooftop
-  const addRooftop = new AddRooftop(page);
-  const rooftopName = `Rooftop_${Date.now()}`;
-  const createdRooftopName = await addRooftop.AddRooftop(rooftopName);
-
-  // STEP 3: Reload page
-  await page.waitForTimeout(1000);
-  await page.reload();
   await page.waitForLoadState('networkidle');
-  await page.waitForTimeout(500);
 
-  // STEP 4: Search for rooftop - FAST
-  const searchedRooftopName = await addRooftop.searchRooftopInSummary(createdRooftopName);
+  // Step 3-7
+  const result =
+    await rooftopPage.addAndVerifyRooftop(
+      testInfo
+    );
 
-  // STEP 5: Report with validation
-  logAndValidate({
-    step: 'Summary-Add Rooftop Status',
-    expected: createdRooftopName,
-    actual: searchedRooftopName,
-    isSummary: true
-  }, testInfo);
+  expect(result.success).toBeTruthy();
 
-  expect(searchedRooftopName).toBe(createdRooftopName);
+  console.log(`Created : ${result.createdName}`);
+  console.log(`Verified: ${result.searchedName}`);
+
+  console.log('\n========================================');
+  console.log('TEST PASSED');
+  console.log('========================================\n');
+}
+
+
+);
+
 });

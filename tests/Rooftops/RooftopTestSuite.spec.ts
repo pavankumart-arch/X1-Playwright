@@ -1,748 +1,273 @@
-import {
-  test,
-  expect,
-  TestInfo
-} from '@playwright/test';
+import { test, expect } from '@playwright/test';
 
-// ======================================================
-// ENABLE PARALLEL EXECUTION
-// ======================================================
+import { Login } from '../../pages/Login/Loginpage';
+import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
 
-test.describe.configure({
-  mode: 'parallel'
-});
+import { RooftopNavigation } from '../../pages/Rooftops/RooftopNavigation';
+import { RooftopColumns } from '../../pages/Rooftops/RooftopColumns';
+import { validateAddRooftopForm } from '../../pages/Rooftops/AddRooftopValidation';
+import { VerifyRooftopCancelButton } from '../../pages/Rooftops/CancelRooftop';
+import { AddRooftop } from '../../pages/Rooftops/AddRooftop';
+import { UpdatedRooftop } from '../../pages/Rooftops/VerifyAddedRooftop';
+import { EditRooftop } from '../../pages/Rooftops/EdtiRooftop';
+import { DeleteRooftop } from '../../pages/Rooftops/DeleteRooftop';
+import { RooftopPagination } from '../../pages/Rooftops/RooftopPagination';
+import { RooftopSearch } from '../../pages/Rooftops/RooftopSearch';
+import { RooftopSorting } from '../../pages/Rooftops/RooftopSorting';
 
-// ======================================================
-// IMPORTS
-// ======================================================
+import { Reporter } from '../../pages/utils/NewReport';
+import { logAndValidate } from '../../utils/reportUtil';
 
-import { Login }
-from '../../pages/Login/Loginpage';
+import AddRooftopData from '../../testdata/AddRooftopData.json';
 
-import { LeftsideNavigation }
-from '../../pages/Navigations/LeftSideNavigation';
+test.describe.configure({ mode: 'parallel' });
 
-import { RooftopColumns }
-from '../../pages/Rooftops/RooftopColumns';
+test.describe('Rooftop Management', () => {
 
-import { validateAddRooftopForm }
-from '../../pages/Rooftops/AddRooftopValidation';
+    test.beforeEach(async ({ page }, testInfo) => {
 
-import { VerifyRooftopCancelButton }
-from '../../pages/Rooftops/CancelRooftop';
+        const loginPage = new Login(page);
+        const navigation = new LeftsideNavigation(page);
 
-import { AddRooftop }
-from '../../pages/Rooftops/AddRooftop';
+        await loginPage.navigateToURL();
+        await loginPage.loginToApplication();
 
-import { VerifyRooftop }
-from '../../pages/Rooftops/VerifyAddedRooftop';
+        await navigation.goToDashboard();
+        await page.waitForLoadState('networkidle');
 
-import { EditRooftop }
-from '../../pages/Rooftops/EdtiRooftop';
+        await navigation.goToResellers();
+        await page.waitForLoadState('networkidle');
 
-import { RooftopSearch }
-from '../../pages/Rooftops/RooftopSearch';
+        const rooftopNavigation = new RooftopNavigation(page);
 
-import { RooftopShow }
-from '../../pages/Rooftops/RooftopShow';
-
-import { RooftopSorting }
-from '../../pages/Rooftops/RooftopSorting';
-
-import { logAndValidate }
-from '../../utils/reportUtil';
-
-// ======================================================
-// COMMON NAVIGATION METHOD
-// ======================================================
-
-async function loginAndNavigateToRooftops(
-  page: any
-) {
-
-  const loginPage =
-    new Login(page);
-
-  await loginPage.navigateToURL();
-
-  await loginPage.loginToApplication();
-
-  const navigation =
-    new LeftsideNavigation(page);
-
-  await navigation.goToDashboard();
-
-  await page.waitForLoadState(
-    'networkidle'
-  );
-
-  await navigation.goToResellers();
-
-  await page.waitForLoadState(
-    'networkidle'
-  );
-
-  const resellerName =
-    'Premier Auto Group';
-
-  const resellerButton =
-    page
-      .locator('table')
-      .getByRole(
-        'button',
-        {
-          name:
-            resellerName
-        }
-      )
-      .first();
-
-  await resellerButton.click();
-
-  await page.waitForLoadState(
-    'networkidle'
-  );
-
-  await navigation
-    .goToListofRooftops();
-
-  await page.waitForLoadState(
-    'networkidle'
-  );
-
-  return navigation;
-}
-
-// ======================================================
-// 1. VERIFY ROOFTOP COLUMNS
-// ======================================================
-
-test(
-  'Verify Rooftop Columns',
-  async ({ page }, testInfo) => {
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const rooftopColumns =
-      new RooftopColumns(page);
-
-    const {
-      expectedColumns,
-      actualHeaders
-    } =
-      await rooftopColumns
-        .verifyRooftopColumns();
-
-    for (
-      let i = 0;
-      i < expectedColumns.length;
-      i++
-    ) {
-
-      logAndValidate({
-        step:
-          `Column ${i + 1}`,
-        expected:
-          expectedColumns[i],
-        actual:
-          actualHeaders[i]
-            || 'MISSING',
-        isSummary: false
-      }, testInfo);
-    }
-
-    expect(
-      actualHeaders
-    ).toEqual(
-      expectedColumns
-    );
-  }
-);
-
-// ======================================================
-// 2. VERIFY ROOFTOP VALIDATION
-// ======================================================
-
-test(
-  'Verify Rooftop Validation',
-  async ({ page }, testInfo) => {
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const validateForm =
-      new validateAddRooftopForm(
-        page,
-        testInfo
-      );
-
-    const isValid =
-      await validateForm
-        .validateAddRooftopForm();
-
-    expect(
-      isValid
-    ).toBeTruthy();
-  }
-);
-
-// ======================================================
-// 3. VERIFY ROOFTOP CANCEL BUTTON
-// ======================================================
-
-test(
-  'Verify Rooftop Cancel Button',
-  async ({ page }, testInfo) => {
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const cancelButtonTest =
-      new VerifyRooftopCancelButton(
-        page
-      );
-
-    const isSuccess =
-      await cancelButtonTest
-        .VerifyRooftopCancelButton();
-
-    logAndValidate({
-      step:
-        'Verify Rooftop Cancel Button',
-      expected:
-        'Successfully navigated back',
-      actual:
-        isSuccess
-          ? 'Successfully navigated back'
-          : 'Failed',
-      isSummary: true
-    }, testInfo);
-
-    expect(
-      isSuccess
-    ).toBeTruthy();
-  }
-);
-
-// ======================================================
-// 4. VERIFY ADD ROOFTOP
-// ======================================================
-
-test(
-  'Verify Add Rooftop',
-  async ({ page }, testInfo) => {
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const addRooftop =
-      new AddRooftop(page);
-
-    const rooftopName =
-      `Rooftop_${
-        Date.now()
-      }`;
-
-    const createdRooftopName =
-      await addRooftop
-        .AddRooftop(
-          rooftopName
-        );
-
-    await page.waitForTimeout(
-      1000
-    );
-
-    await page.reload();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
-
-    const searchedRooftopName =
-      await addRooftop
-        .searchRooftopInSummary(
-          createdRooftopName
-        );
-
-    logAndValidate({
-      step:
-        'Summary Add Rooftop',
-      expected:
-        createdRooftopName,
-      actual:
-        searchedRooftopName,
-      isSummary: true
-    }, testInfo);
-
-    expect(
-      searchedRooftopName
-    ).toBe(
-      createdRooftopName
-    );
-  }
-);
-
-// ======================================================
-// 5. VERIFY ADDED ROOFTOP DATA
-// ======================================================
-
-test(
-  'Verify Added Rooftop Data',
-  async ({ page }, testInfo) => {
-
-    test.setTimeout(
-      180000
-    );
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const addRooftop =
-      new AddRooftop(page);
-
-    const rooftopName =
-      `Rooftop_${
-        Date.now()
-      }`;
-
-    const createdRooftopName =
-      await addRooftop
-        .AddRooftop(
-          rooftopName
-        );
-
-    const addedData =
-      addRooftop
-        .getAddedRooftopData();
-
-    expect(
-      addedData
-    ).toBeTruthy();
-
-    await page.reload();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
-
-    const verifyRooftop =
-      new VerifyRooftop(page);
-
-    const result =
-      await verifyRooftop
-        .VerifyAddedRooftop(
-          createdRooftopName,
-          addedData
-        );
-
-    expect(
-      result.searchPassed
-    ).toBeTruthy();
-
-    expect(
-      result.verificationPassed
-    ).toBeTruthy();
-  }
-);
-
-// ======================================================
-// 6. VERIFY EDIT ROOFTOP
-// ======================================================
-
-test(
-  'Verify Edit Rooftop',
-  async ({ page }, testInfo) => {
-
-    test.setTimeout(
-      180000
-    );
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const editRooftop =
-      new EditRooftop(page);
-
-    let editedRooftopName =
-      '';
-
-    try {
-
-      const result =
-        await editRooftop
-          .addAndEditRooftop(
+        await rooftopNavigation.searchAndOpenRecord(
+            AddRooftopData.rooftopname,
             testInfo
-          );
-
-      editedRooftopName =
-        result.editedName;
-
-      expect(
-        result.editSuccess
-      ).toBeTruthy();
-
-    } finally {
-
-      if (
-        editedRooftopName
-      ) {
-
-        await editRooftop
-          .deleteRooftop(
-            editedRooftopName
-          );
-      }
-    }
-  }
-);
-
-// ======================================================
-// 7. VERIFY DELETE ROOFTOP
-// ======================================================
-
-test(
-  'Verify Delete Rooftop',
-  async ({ page }) => {
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const addRooftop =
-      new AddRooftop(page);
-
-    const rooftopName =
-      `Rooftop_${
-        Date.now()
-      }`;
-
-    const createdRooftopName =
-      await addRooftop
-        .AddRooftop(
-          rooftopName
         );
 
-    await page.reload();
+        await navigation.goToListofRooftops();
+        await page.waitForLoadState('networkidle');
+    });
 
-    await page.waitForLoadState(
-      'networkidle'
-    );
+    //==================================================
+    // Column Validation
+    //==================================================
 
-    const searchBox =
-      page.getByPlaceholder(
-        'Search...'
-      );
+    test('Verify Rooftop Column Headings', async ({ page }, testInfo) => {
 
-    await searchBox.fill(
-      createdRooftopName
-    );
+        const rooftopColumns = new RooftopColumns(page);
 
-    await page.waitForTimeout(
-      1000
-    );
+        const { expectedColumns, actualHeaders } =
+            await rooftopColumns.verifyRooftopColumns();
 
-    const deleteButton =
-      page
-        .locator(
-          'table tbody tr'
-        )
-        .filter({
-          hasText:
-            createdRooftopName
-        })
-        .locator('td')
-        .last()
-        .locator('button')
-        .last();
+        for (let i = 0; i < expectedColumns.length; i++) {
 
-    await deleteButton.click();
-
-    const confirmButton =
-      page
-        .locator(
-          'button:has-text("Delete")'
-        )
-        .last();
-
-    await confirmButton.click();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
-
-    await searchBox.fill('');
-
-    await searchBox.fill(
-      createdRooftopName
-    );
-
-    const noDataMessage =
-      page.locator(
-        'text=No data available'
-      );
-
-    const deletionPassed =
-      await noDataMessage
-        .isVisible()
-        .catch(() => false);
-
-    expect(
-      deletionPassed
-    ).toBeTruthy();
-  }
-);
-
-// ======================================================
-// 8. VERIFY PAGINATION
-// ======================================================
-
-test(
-  'Verify Rooftop Pagination',
-  async ({ page }, testInfo) => {
-
-    await loginAndNavigateToRooftops(
-      page
-    );
-
-    const dropdown =
-      page.locator('select');
-
-    const options = [
-      '10',
-      '20',
-      '50',
-      '100'
-    ];
-
-    let allTestsPassed =
-      true;
-
-    for (
-      const optionValue
-      of options
-    ) {
-
-      await dropdown.selectOption(
-        optionValue
-      );
-
-      await page.waitForTimeout(
-        1500
-      );
-
-      const text =
-        await page
-          .locator(
-            'text=/Showing \\d+-\\d+ of \\d+/'
-          )
-          .textContent();
-
-      const totalMatch =
-        text?.match(
-          /of (\d+)/
-        );
-
-      const totalRecords =
-        totalMatch
-          ? Number(totalMatch[1])
-          : 0;
-
-      const rowsPerPage =
-        parseInt(optionValue);
-
-      const expectedPages =
-        Math.ceil(
-          totalRecords
-          / rowsPerPage
-        );
-
-      let actualPages = 1;
-
-      let canGoNext = true;
-
-      while (
-        canGoNext
-        && actualPages < expectedPages
-      ) {
-
-        const nextButton =
-          page.getByRole(
-            'button',
-            { name: 'Next' }
-          );
-
-        const isNextEnabled =
-          await nextButton
-            .isEnabled();
-
-        if (isNextEnabled) {
-
-          await nextButton.click();
-
-          await page.waitForTimeout(
-            1000
-          );
-
-          actualPages++;
-
-        } else {
-
-          canGoNext = false;
+            logAndValidate({
+                step: `Column ${i + 1}`,
+                expected: expectedColumns[i],
+                actual: actualHeaders[i] || 'Missing'
+            }, testInfo);
         }
-      }
 
-      if (
-        actualPages
-        !== expectedPages
-      ) {
+        expect(actualHeaders).toEqual(expectedColumns);
+    });
 
-        allTestsPassed = false;
-      }
-    }
+    //==================================================
+    // Form Validation
+    //==================================================
 
-    expect(
-      allTestsPassed
-    ).toBeTruthy();
-  }
-);
+    test('Validate Add Rooftop Form', async ({ page }, testInfo) => {
 
-// ======================================================
-// 9. VERIFY SEARCH
-// ======================================================
+        const form = new validateAddRooftopForm(page, testInfo);
 
-test(
-  'Verify Rooftop Search',
-  async ({ page }, testInfo) => {
+        const result = await form.validateAddRooftopForm();
 
-    await loginAndNavigateToRooftops(
-      page
-    );
+        expect(result).toBeTruthy();
+    });
 
-    const rooftopSearch =
-      new RooftopSearch(
-        page,
-        testInfo
-      );
+    //==================================================
+    // Cancel Button
+    //==================================================
 
-    await rooftopSearch
-      .searchByID();
+    test('Verify Rooftop Cancel Button', async ({ page }, testInfo) => {
 
-    await rooftopSearch
-      .searchByName();
+        const cancel = new VerifyRooftopCancelButton(page);
 
-    await rooftopSearch
-      .searchByDescription();
+        expect(await cancel.VerifyRooftopCancelButton(testInfo))
+            .toBeTruthy();
+    });
 
-    await rooftopSearch
-      .searchByCreated();
+    //==================================================
+    // Add Rooftop
+    //==================================================
 
-    await rooftopSearch
-      .searchByStatus();
+    test('Verify Add Rooftop', async ({ page }, testInfo) => {
 
-    await rooftopSearch
-      .invalidSearch();
+        const add = new AddRooftop(page);
 
-    await rooftopSearch
-      .searchByNonExistentName();
+        const result =
+            await add.addAndVerifyRooftop(testInfo);
 
-    await rooftopSearch
-      .searchByNonExistentID();
+        expect(result.success).toBeTruthy();
+    });
 
-    expect(
-      rooftopSearch
-        .hasFailures()
-    ).toBeFalsy();
-  }
-);
+    //==================================================
+    // Verify Rooftop
+    //==================================================
 
-// ======================================================
-// 10. VERIFY SHOW OPTIONS
-// ======================================================
+    test('Verify Added Rooftop', async ({ page }, testInfo) => {
 
-test(
-  'Verify Rooftop Show Up',
-  async ({ page }, testInfo) => {
+        Reporter.startTest();
 
-    test.setTimeout(
-      180000
-    );
+        const add = new AddRooftop(page);
 
-    const navigation =
-      await loginAndNavigateToRooftops(
-        page
-      );
+        const rooftopName =
+            await add.AddRooftop(testInfo);
 
-    const rooftopShow =
-      new RooftopShow(page);
+        await page.reload();
 
-    const result =
-      await rooftopShow
-        .testAllShowOptions(
-          navigation,
-          testInfo
-        );
+        const verify = new UpdatedRooftop(page);
 
-    expect(
-      result.success
-    ).toBeTruthy();
-  }
-);
+        await verify.OpenRooftopView(rooftopName, testInfo);
+        await verify.VerifyRooftopDetails(rooftopName, testInfo);
 
-// ======================================================
-// 11. VERIFY SORTING
-// ======================================================
+        Reporter.endTest(testInfo);
+    });
 
-const columnsToTest = [
-  'Rooftop Name',
-  'Description',
-  'Created',
-  'Status'
-];
+    //==================================================
+    // Edit Rooftop
+    //==================================================
 
-for (
-  const column
-  of columnsToTest
-) {
+    test('Edit Rooftop', async ({ page }, testInfo) => {
 
-  test(
-    `Sorting Validation - ${column}`,
-    async ({ page }, testInfo) => {
+        test.setTimeout(180000);
 
-      test.setTimeout(
-        120000
-      );
+        const edit = new EditRooftop(page);
 
-      await loginAndNavigateToRooftops(
-        page
-      );
+        let edited = '';
 
-      const rooftopSorting =
-        new RooftopSorting(page);
+        try {
 
-      const timeout =
-        column === 'Status'
-          ? 90000
-          : 60000;
+            const result =
+                await edit.addAndEditRooftop(testInfo);
 
-      const result =
-        await rooftopSorting
-          .validateColumnSorting(
-            column,
-            testInfo,
-            timeout
-          );
+            edited = result.editedName;
 
-      expect(
-        result.passed
-      ).toBeTruthy();
-    }
-  );
-}
+            expect(result.editSuccess).toBeTruthy();
+
+        } finally {
+
+            if (edited) {
+                await edit.deleteRooftop(edited, testInfo);
+            }
+
+        }
+
+    });
+
+    //==================================================
+    // Delete Rooftop
+    //==================================================
+
+    test('Delete Rooftop', async ({ page }, testInfo) => {
+
+        const add = new AddRooftop(page);
+        const del = new DeleteRooftop(page);
+
+        const rooftop =
+            await add.AddRooftop(
+                testInfo,
+                `Rooftop_${Date.now()}`
+            );
+
+        await page.reload();
+
+        const result =
+            await del.DeleteRooftop(rooftop, testInfo);
+
+        expect(result.deletePassed).toBeTruthy();
+        expect(result.verificationPassed).toBeTruthy();
+    });
+
+    //==================================================
+    // Pagination
+    //==================================================
+
+    test('Verify Rooftop Pagination', async ({ page }, testInfo) => {
+
+        const pagination = new RooftopPagination(page);
+
+        expect(
+            await pagination.verifyAllPagination(testInfo)
+        ).toBeTruthy();
+
+    });
+
+    //==================================================
+    // Search
+    //==================================================
+
+    test('Verify Rooftop Search', async ({ page }, testInfo) => {
+
+        Reporter.startTest();
+
+        const search =
+            new RooftopSearch(page, testInfo);
+
+        await search.searchByID();
+        await search.searchByName();
+        await search.searchByDescription();
+        await search.searchByCreated();
+        await search.invalidSearch();
+        await search.searchByNonExistentName();
+        await search.searchByNonExistentID();
+        await search.searchByStatus();
+        await search.searchInactiveStatus();
+
+        Reporter.endTest(testInfo);
+
+        if (search.hasFailures()) {
+            throw new Error(search.getFailures().join('\n'));
+        }
+
+    });
+
+    //==================================================
+    // Sorting
+    //==================================================
+
+    test('Verify Rooftop Sorting', async ({ page }, testInfo) => {
+
+        Reporter.startTest();
+
+        const sorting =
+            new RooftopSorting(page);
+
+        const columns = [
+            'Rooftop Name',
+            'Description',
+            'Created',
+            'Status'
+        ];
+
+        let passed = true;
+
+        for (const column of columns) {
+
+            const result =
+                await sorting.validateColumnSorting(
+                    column,
+                    testInfo
+                );
+
+            if (!result.passed)
+                passed = false;
+        }
+
+        Reporter.endTest(testInfo);
+
+        expect(passed).toBeTruthy();
+
+    });
+
+});

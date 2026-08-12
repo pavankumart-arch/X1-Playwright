@@ -2,11 +2,15 @@ import { test, TestInfo } from '@playwright/test';
 import { Login } from '../../pages/Login/Loginpage';
 import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
 import { EditRooftop } from '../../pages/Rooftops/EdtiRooftop';
+import { RooftopNavigation } from '../../pages/Rooftops/RooftopNavigation';
+import AddRooftopData from '../../testdata/AddRooftopData.json';
+
 
 test("Add, Edit and Delete Rooftop", async ({ page }, testInfo: TestInfo) => {
   test.setTimeout(180000);
-  
-  const loginPage = new Login(page);
+const loginPage = new Login(page);
+  // Login and navigate
+
   await loginPage.navigateToURL();
   await loginPage.loginToApplication();
 
@@ -18,26 +22,24 @@ test("Add, Edit and Delete Rooftop", async ({ page }, testInfo: TestInfo) => {
   await navigation.goToResellers();
   await page.waitForLoadState('networkidle');
 
-  const resellerName = "Premier Auto Group";
+   const rooftopNavigation = new RooftopNavigation(page);
+ // Step 1 & Step 2
+  await rooftopNavigation.searchAndOpenRecord(
+    AddRooftopData.rooftopname,
+    testInfo
+  );
 
-  const resellerButton = page
-    .locator('table')
-    .getByRole('button', { name: resellerName })
-    .first();
-
-  await resellerButton.click();
-  await page.waitForLoadState('networkidle');
-  
   // Navigate to rooftops list
   await navigation.goToListofRooftops();
   await page.waitForLoadState('networkidle');
+
   
   const editRooftop = new EditRooftop(page);
   
   let editedRooftopName = '';
   
   try {
-    // Add and edit rooftop (AddRooftop class handles JSON data internally)
+    // Add and edit rooftop - testInfo is already passed correctly
     const result = await editRooftop.addAndEditRooftop(testInfo);
     editedRooftopName = result.editedName;
     
@@ -81,8 +83,8 @@ test("Add, Edit and Delete Rooftop", async ({ page }, testInfo: TestInfo) => {
       console.log(`STEP 3: Deleting Edited Rooftop`);
       console.log(`${"=".repeat(60)}`);
       
-      // Just call the delete method - no duplicate code
-      await editRooftop.deleteRooftop(editedRooftopName);
+      // Pass testInfo to delete method
+      await editRooftop.deleteRooftop(editedRooftopName, testInfo);
       
       testInfo.annotations.push({
         type: 'Delete Rooftop',
@@ -90,4 +92,4 @@ test("Add, Edit and Delete Rooftop", async ({ page }, testInfo: TestInfo) => {
       });
     }
   }
-});
+})

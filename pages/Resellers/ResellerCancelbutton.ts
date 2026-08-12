@@ -1,6 +1,8 @@
 import { expect, Locator, Page, TestInfo } from '@playwright/test';
 import { BasePage } from '../BasePage';
-import { logAndValidate } from '../../utils/reportUtil';
+import { Reporter } from '../utils/NewReport';
+
+
 export class VerifyCancelbutton extends BasePage {
 
   AddResellerButton: Locator;
@@ -29,14 +31,11 @@ export class VerifyCancelbutton extends BasePage {
     // 🔍 Step 4: Capture actual visibility
     const actual = await this.AddResellerButton.isVisible();
 
-    // 📝 Step 5: Validate using logAndValidate
-    logAndValidate(
-      {
-        step: 'Verify Cancel button closes the form and shows Add Reseller button',
-        expected: true,
-        actual: actual,
-        isSummary: false,
-      },
+    // 📝 Step 5: Validate using Reporter
+    Reporter.validateData(
+      true,
+      actual,
+      'Verify Cancel button closes the form and shows Add Reseller button',
       testInfo
     );
   }

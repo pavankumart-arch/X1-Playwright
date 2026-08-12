@@ -1,7 +1,19 @@
-import { Locator, Page } from '@playwright/test';
+import { Page, Locator } from '@playwright/test';
 import { BasePage } from '../BasePage';
+import AddRooftopData from '../../testdata/AddRooftopData.json';
+import { Reporter } from '../utils/NewReport';
 
-export class VerifyRooftop extends BasePage {
+
+export class UpdatedRooftop extends BasePage {
+  [x: string]: any;
+
+  searchInput: Locator;
+  rows: Locator;
+
+  AddRooftopButton: Locator;
+  AddRooftopheading: Locator;
+  SaveRooftopbutton: Locator;
+  CancelButton: Locator;
 
   Name: Locator;
   Description: Locator;
@@ -16,312 +28,253 @@ export class VerifyRooftop extends BasePage {
   Phone: Locator;
   Email: Locator;
   URL: Locator;
-  FaceebookID: Locator;
+  FacebookID: Locator;
   DealerGroups: Locator;
   Comments: Locator;
-  SearchBox: Locator;
-  ActiveCheckbox: Locator;
+  Active: Locator;
 
   constructor(page: Page) {
+
     super(page);
 
-    this.Name = page.getByPlaceholder("Enter client name");
-    this.Description = page.getByPlaceholder('Enter description');
-    this.RooftopID = page.locator('#admin-rooftop-edit-dealerCode, input[placeholder="Enter Rooftop ID"]');
-    this.Franchise = page.getByPlaceholder('Enter franchise number');
-    this.PlayerColor = page.locator('#admin-rooftop-create-playerColor, input[type="color"], input[name="playerColor"]');
-    this.SalesPersonName = page.getByPlaceholder('Enter sales person name');
-    this.Address = page.getByPlaceholder('Full address');
-    this.City = page.getByPlaceholder('Enter city');
-    this.State = page.getByPlaceholder('Enter state');
-    this.Zip = page.getByPlaceholder('Enter ZIP code');
-    this.Phone = page.getByPlaceholder('Enter phone number');
-    this.Email = page.getByPlaceholder('Enter email address');
-    this.URL = page.getByPlaceholder('https://example.com');
-    this.FaceebookID = page.locator('#admin-rooftop-edit-facebookId, input[placeholder="Enter Facebook ID"], input[name="facebookId"]');
-    this.DealerGroups = page.locator('input[placeholder="Enter dealer groups (comma separated)"]').or(
-      page.locator('#admin-rooftop-edit-dealerGroups')
-    ).or(
-      page.getByLabel('Dealer Groups')
-    );
-    this.Comments = page.getByPlaceholder('Any additional notes...');
-    this.SearchBox = page.getByPlaceholder('Search...');
-    this.ActiveCheckbox = page.locator('input[type="checkbox"]').filter({ hasText: 'Active' });
+    this.searchInput = this.page.locator('input.table-search__input');
+
+    this.rows = this.page.locator('table tbody tr');
+   
+    this.AddRooftopButton = page.locator('[class="flex items-center gap-2"]');
+
+    this.AddRooftopheading = this.page.getByRole('heading', { name: 'Add Rooftop' });
+
+    this.SaveRooftopbutton = this.page.getByRole('button', { name: 'Save Rooftop' });
+
+    this.CancelButton = this.page.getByRole('button', { name: 'Cancel' });
+
+    this.Name = this.page.getByPlaceholder("Enter client name");
+
+    this.Description = this.page.getByPlaceholder('Enter description');
+
+    this.RooftopID = this.page.getByPlaceholder('Enter Rooftop ID');
+
+    this.Franchise = this.page.getByPlaceholder('Enter franchise number');
+
+    this.PlayerColor = this.page.locator('#admin-rooftop-create-playerColor');
+
+    this.SalesPersonName = this.page.getByPlaceholder('Enter sales person name');
+
+    this.Address = this.page.getByPlaceholder('Full address');
+
+    this.City = this.page.getByPlaceholder('Enter city');
+
+    this.State = this.page.getByPlaceholder('Enter state');
+
+    this.Zip = this.page.getByPlaceholder('Enter ZIP code');
+
+    this.Phone = this.page.getByPlaceholder('Enter phone number');
+
+    this.Email = this.page.getByPlaceholder('Enter email address');
+
+    this.URL = this.page.getByPlaceholder('https://example.com');
+
+    this.FacebookID = this.page.getByPlaceholder('Enter Facebook ID');
+
+    this.DealerGroups = this.page.getByPlaceholder('Enter dealer groups (comma separated)');
+
+    this.Comments = this.page.getByPlaceholder('Any additional notes...');
+
+    this.Active = this.page.getByText('Active');
   }
 
-  async searchRooftopInSummary(rooftopName: string): Promise<string | null> {
-    try {
-      await this.SearchBox.waitFor({ state: 'visible', timeout: 3000 });
-      await this.SearchBox.click({ timeout: 2000 });
-      await this.SearchBox.fill('');
-      await this.page.waitForTimeout(300);
-      await this.SearchBox.fill(rooftopName);
-      await this.page.waitForTimeout(800);
+  async OpenRooftopView(rooftopName: string, testInfo: import('@playwright/test').TestInfo) {
 
-      const tableRows = this.page.locator('table tbody tr');
-      const rowCount = await tableRows.count();
+    await this.searchInput.fill(rooftopName);
 
-      if (rowCount > 0) {
-        const firstRowNameCell = tableRows.nth(0).locator('td').nth(1);
-        const cellText = (await firstRowNameCell.textContent())?.trim() || '';
-        
-        if (cellText.toLowerCase().includes(rooftopName.toLowerCase())) {
-          return cellText;
-        }
-      }
-      return null;
-    } catch (error) {
-      return null;
-    }
-  }
+    await this.rows.first().waitFor({ state: 'visible', timeout: 5000 });
 
-  async clickEditButtonFromSummary(): Promise<void> {
-    try {
-      console.log('📋 Clicking Edit button from summary page...');
-      
-      await this.page.waitForTimeout(1000);
-      
-      const firstRow = this.page.locator('table tbody tr').first();
-      await firstRow.waitFor({ state: 'visible', timeout: 5000 });
-      
-      const actionsCell = firstRow.locator('td').last();
-      const editButton = actionsCell.getByRole('button', { name: 'Edit' }).or(
-        actionsCell.locator('button').first()
-      );
-      
-      await editButton.waitFor({ state: 'visible', timeout: 5000 });
-      await editButton.click();
-      
-      await this.page.waitForLoadState('networkidle');
-      await this.page.waitForTimeout(2000);
-      
-      const updateButton = this.page.getByRole('button', { name: 'Update Rooftop' });
-      await updateButton.waitFor({ state: 'visible', timeout: 10000 });
-      console.log('✅ Edit form opened successfully');
-      
-    } catch (error) {
-      console.error(`❌ Failed to click edit button: ${error}`);
-      throw error;
-    }
-  }
+    const matchedRow = this.rows.filter({
+      has: this.page.locator('td:nth-child(2)', { hasText: rooftopName })
+    });
 
-  private async getFieldValue(locator: Locator): Promise<string> {
-    try {
-      await this.page.waitForTimeout(500);
-      
-      const elementCount = await locator.count().catch(() => 0);
-      if (elementCount === 0) return '';
+    await matchedRow.locator('td:last-child button').first().click();
 
-      try {
-        const inputVal = await locator.inputValue({ timeout: 3000 }).catch(() => null);
-        if (inputVal && inputVal.trim().length > 0) {
-          return inputVal.trim();
-        }
-      } catch (e) {}
-
-      try {
-        const attrValue = await locator.getAttribute('value', { timeout: 2000 }).catch(() => null);
-        if (attrValue && attrValue.trim().length > 0) {
-          return attrValue.trim();
-        }
-      } catch (e) {}
-
-      try {
-        const textContent = await locator.textContent({ timeout: 2000 }).catch(() => null);
-        if (textContent && textContent.trim().length > 0) {
-          return textContent.trim();
-        }
-      } catch (e) {}
-
-      return '';
-    } catch (error) {
-      return '';
-    }
-  }
-
-  private async getActiveCheckboxValue(): Promise<string> {
-    try {
-      await this.page.waitForTimeout(500);
-      
-      const activeCheckbox = this.page.locator('input[type="checkbox"]').filter({ hasText: 'Active' });
-      
-      if (await activeCheckbox.count() > 0 && await activeCheckbox.isVisible()) {
-        const isChecked = await activeCheckbox.isChecked();
-        const status = isChecked ? 'Checked' : 'Unchecked';
-        console.log(`📝 Active Checkbox in EDIT form: ${status}`);
-        return status;
-      }
-      
-      console.log(`⚠️ Active checkbox not found in edit form, defaulting to 'Checked'`);
-      return 'Checked';
-    } catch (error) {
-      console.log(`⚠️ Error reading Active checkbox: ${error}`);
-      return 'Checked';
-    }
-  }
-
-  async getVerifiedRooftopData(): Promise<any> {
-    console.log('📋 Getting verified rooftop data from edit form...');
-    
     await this.page.waitForTimeout(2000);
-    
-    // Wait for form fields to populate
-    try {
-      await this.page.waitForFunction(() => {
-        const nameInput = document.querySelector('input[placeholder="Enter client name"]') as HTMLInputElement;
-        return nameInput && nameInput.value.length > 0;
-      }, { timeout: 10000 }).catch(() => {
-        console.log('⚠️ Timeout waiting for form fields to populate - fields may be empty');
-      });
-    } catch (e) {}
-    
-    let dealerGroupsValue = '';
-    
-    try {
-      // Try multiple selectors for dealer groups
-      const dealerGroupsSelectors = [
-        'input[placeholder="Enter dealer groups (comma separated)"]',
-        '#admin-rooftop-edit-dealerGroups',
-        'input[name="dealerGroups"]',
-        'input[data-testid="dealerGroups"]'
-      ];
-      
-      for (const selector of dealerGroupsSelectors) {
-        const element = this.page.locator(selector);
-        if (await element.count() > 0 && await element.isVisible()) {
-          dealerGroupsValue = await element.inputValue().catch(() => '');
-          if (dealerGroupsValue) {
-            console.log(`✅ Found dealerGroups value: "${dealerGroupsValue}" using selector: ${selector}`);
-            break;
-          }
-        }
-      }
-      
-      // If still empty, try to get by label
-      if (!dealerGroupsValue) {
-        const dealerGroupsByLabel = this.page.getByLabel('Dealer Groups');
-        if (await dealerGroupsByLabel.count() > 0) {
-          dealerGroupsValue = await dealerGroupsByLabel.inputValue().catch(() => '');
-          if (dealerGroupsValue) {
-            console.log(`✅ Found dealerGroups value: "${dealerGroupsValue}" using label`);
-          }
-        }
-      }
-      
-      console.log(`📝 Final dealerGroups value: "${dealerGroupsValue}"`);
-      
-    } catch (error) {
-      console.log(`⚠️ Error getting dealerGroups: ${error}`);
-    }
-
-    const nameValue = await this.getFieldValue(this.Name);
-    const descriptionValue = await this.getFieldValue(this.Description);
-    const rooftopIdValue = await this.getFieldValue(this.RooftopID);
-    const franchiseValue = await this.getFieldValue(this.Franchise);
-    const playerColorValue = await this.getFieldValue(this.PlayerColor);
-    const salesPersonValue = await this.getFieldValue(this.SalesPersonName);
-    const addressValue = await this.getFieldValue(this.Address);
-    const cityValue = await this.getFieldValue(this.City);
-    const stateValue = await this.getFieldValue(this.State);
-    const zipValue = await this.getFieldValue(this.Zip);
-    const phoneValue = await this.getFieldValue(this.Phone);
-    const emailValue = await this.getFieldValue(this.Email);
-    const urlValue = await this.getFieldValue(this.URL);
-    const facebookIdValue = await this.getFieldValue(this.FaceebookID);
-    const commentsValue = await this.getFieldValue(this.Comments);
-    const activeCheckboxValue = await this.getActiveCheckboxValue();
-
-    console.log(`📊 Retrieved values - Name: "${nameValue}", DealerGroups: "${dealerGroupsValue}"`);
-
-    return {
-      name: nameValue,
-      description: descriptionValue,
-      rooftopID: rooftopIdValue,
-      franchise: franchiseValue,
-      playerColor: playerColorValue,
-      salesPersonName: salesPersonValue,
-      address: addressValue,
-      city: cityValue,
-      state: stateValue,
-      zip: zipValue,
-      phone: phoneValue,
-      email: emailValue,
-      url: urlValue,
-      facebookID: facebookIdValue,
-      dealerGroups: dealerGroupsValue,
-      comments: commentsValue,
-      active: activeCheckboxValue
-    };
   }
 
-  async VerifyAddedRooftop(rooftopName: string, addedData: any): Promise<{
-    searchPassed: boolean;
-    verificationPassed: boolean;
-    fieldComparisons: Array<{
-      field: string;
-      expected: string;
-      actual: string;
-      status: string;
-    }>;
-  }> {
-    try {
-      const searchedRooftopName = await this.searchRooftopInSummary(rooftopName);
-      const searchPassed = searchedRooftopName !== null && searchedRooftopName.toLowerCase().includes(rooftopName.toLowerCase());
+  async VerifyRooftopDetails(rooftopName: string, testInfo: import('@playwright/test').TestInfo) {
 
-      if (!searchPassed) {
-        return {
-          searchPassed: false,
-          verificationPassed: false,
-          fieldComparisons: []
-        };
-      }
+    let allPassed = true;
 
-      await this.clickEditButtonFromSummary();
-      const verifiedData = await this.getVerifiedRooftopData();
+    // Validate Name
+    const actualName = await this.Name.inputValue();
+    const nameValid = actualName === rooftopName;
+    Reporter.validateData(
+      rooftopName,
+      actualName,
+      'Rooftop Name',
+      testInfo
+    );
+    if (!nameValid) allPassed = false;
 
-      console.log(`\n📊 Verified Data Retrieved (${Object.keys(verifiedData).length} fields):`);
-      console.log(JSON.stringify(verifiedData, null, 2));
+    // Validate Description
+    const actualDescription = await this.Description.inputValue();
+    const descriptionValid = actualDescription === AddRooftopData.description;
+    Reporter.validateData(
+      AddRooftopData.description,
+      actualDescription,
+      'Description',
+      testInfo
+    );
+    if (!descriptionValid) allPassed = false;
 
-      const fields = Object.keys(addedData);
-      let allMatch = true;
-      const fieldComparisons = [];
+    // Validate Franchise
+    const actualFranchise = await this.Franchise.inputValue();
+    const franchiseValid = actualFranchise === AddRooftopData.franchise;
+    Reporter.validateData(
+      AddRooftopData.franchise,
+      actualFranchise,
+      'Franchise',
+      testInfo
+    );
+    if (!franchiseValid) allPassed = false;
 
-      for (const field of fields) {
-        const addedValue = String(addedData[field] || '').trim();
-        const verifiedValue = String(verifiedData[field] || '').trim();
-        
-        let normalizedAdded = addedValue;
-        let normalizedVerified = verifiedValue;
-        
-        if (field.toLowerCase().includes('color')) {
-          normalizedAdded = addedValue.toUpperCase();
-          normalizedVerified = verifiedValue.toUpperCase();
-        }
-        
-        const match = normalizedAdded === normalizedVerified;
-        if (!match) allMatch = false;
+    // Validate Sales Person Name
+    const actualSalesPerson = await this.SalesPersonName.inputValue();
+    const salesPersonValid = actualSalesPerson === AddRooftopData.salesPersonName;
+    Reporter.validateData(
+      AddRooftopData.salesPersonName,
+      actualSalesPerson,
+      'Sales Person Name',
+      testInfo
+    );
+    if (!salesPersonValid) allPassed = false;
 
-        fieldComparisons.push({
-          field,
-          expected: addedValue,
-          actual: verifiedValue,
-          status: match ? '✅ PASS' : '❌ FAIL'
-        });
-      }
+    // Validate Address
+    const actualAddress = await this.Address.inputValue();
+    const addressValid = actualAddress === AddRooftopData.address;
+    Reporter.validateData(
+      AddRooftopData.address,
+      actualAddress,
+      'Address',
+      testInfo
+    );
+    if (!addressValid) allPassed = false;
 
-      return {
-        searchPassed,
-        verificationPassed: allMatch,
-        fieldComparisons
-      };
+    // Validate City
+    const actualCity = await this.City.inputValue();
+    const cityValid = actualCity === AddRooftopData.city;
+    Reporter.validateData(
+      AddRooftopData.city,
+      actualCity,
+      'City',
+      testInfo
+    );
+    if (!cityValid) allPassed = false;
 
-    } catch (error) {
-      console.log(`❌ Verification error: ${error}`);
-      return {
-        searchPassed: false,
-        verificationPassed: false,
-        fieldComparisons: []
-      };
-    }
+    // Validate State
+    const actualState = await this.State.inputValue();
+    const stateValid = actualState === AddRooftopData.state;
+    Reporter.validateData(
+      AddRooftopData.state,
+      actualState,
+      'State',
+      testInfo
+    );
+    if (!stateValid) allPassed = false;
+
+    // Validate Zip
+    const actualZip = await this.Zip.inputValue();
+    const zipValid = actualZip === AddRooftopData.zip;
+    Reporter.validateData(
+      AddRooftopData.zip,
+      actualZip,
+      'Zip Code',
+      testInfo
+    );
+    if (!zipValid) allPassed = false;
+
+    // Validate Phone
+    const actualPhone = await this.Phone.inputValue();
+    const phoneValid = actualPhone === AddRooftopData.phone;
+    Reporter.validateData(
+      AddRooftopData.phone,
+      actualPhone,
+      'Phone Number',
+      testInfo
+    );
+    if (!phoneValid) allPassed = false;
+
+    // Validate Email
+    const actualEmail = await this.Email.inputValue();
+    const emailValid = actualEmail === AddRooftopData.email;
+    Reporter.validateData(
+      AddRooftopData.email,
+      actualEmail,
+      'Email Address',
+      testInfo
+    );
+    if (!emailValid) allPassed = false;
+
+    // Validate URL
+    const actualUrl = await this.URL.inputValue();
+    const urlValid = actualUrl === AddRooftopData.url;
+    Reporter.validateData(
+      AddRooftopData.url,
+      actualUrl,
+      'URL',
+      testInfo
+    );
+    if (!urlValid) allPassed = false;
+
+    // Validate Facebook ID
+    const actualFacebook = await this.FacebookID.inputValue();
+    const facebookValid = actualFacebook === AddRooftopData.facebookID;
+    Reporter.validateData(
+      AddRooftopData.facebookID,
+      actualFacebook,
+      'Facebook ID',
+      testInfo
+    );
+    if (!facebookValid) allPassed = false;
+
+    // Validate Dealer Groups
+    const actualDealerGroups = await this.DealerGroups.inputValue();
+    const dealerGroupsValid = actualDealerGroups === AddRooftopData.dealerGroups;
+    Reporter.validateData(
+      AddRooftopData.dealerGroups,
+      actualDealerGroups,
+      'Dealer Groups',
+      testInfo
+    );
+    if (!dealerGroupsValid) allPassed = false;
+
+    // Validate Comments
+    const actualComments = await this.Comments.inputValue();
+    const commentsValid = actualComments === AddRooftopData.comments;
+    Reporter.validateData(
+      AddRooftopData.comments,
+      actualComments,
+      'Comments',
+      testInfo
+    );
+    if (!commentsValid) allPassed = false;
+
+    // Validate Active Status
+    const activeVisible = await this.Active.isVisible().catch(() => false);
+    Reporter.validateData(
+      'Visible',
+      activeVisible ? 'Visible' : 'Not Visible',
+      'Active Status',
+      testInfo
+    );
+    if (!activeVisible) allPassed = false;
+
+    // Click Cancel button
+    await this.CancelButton.click();
+
+ Reporter.validateData(
+  true,  // Expected
+  allPassed,  // Actual
+  'Rooftop Verification Summary',
+  testInfo
+);
   }
 }

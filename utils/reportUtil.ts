@@ -4,11 +4,13 @@ export function logAndValidate(
   {
     step,
     expected,
-    actual
+    actual,
+    isSummary
   }: {
     step: string;
     expected: any;
     actual: any;
+    isSummary?: boolean;
   },
   testInfo?: any
 ) {

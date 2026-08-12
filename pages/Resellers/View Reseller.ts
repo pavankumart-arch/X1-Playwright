@@ -7,9 +7,9 @@ export class ViewReseller extends BasePage {
   private modal: Locator;
   private testInfo: TestInfo;
 
-  constructor(page: Page, testInfo: TestInfo) {
+  constructor(page: Page, testInfo?: TestInfo) {
     super(page);
-    this.testInfo = testInfo;
+    this.testInfo = testInfo!;
     this.searchInput = page.locator('input[placeholder*="Search"]').first();
     this.modal = page.locator('[role="dialog"], .modal, .MuiDialog-root, .ant-modal, .drawer, .side-drawer').first();
   }

@@ -5,6 +5,7 @@
   "SalesPerson": "John",
   "TTOptions": "TT1",
   "AppID": "12345",
+  "TTemplate":"TT Template",
   "PlayerSize": "640",
   "Address": "Hyderabad, India",
   "City": "Hyderabad",
@@ -13,5 +14,13 @@
   "Phone": "9876543210",
   "Email": "pavankumar.t@atamai.in",
   "URL": "https://evsadmin.com/ava/admin/",
-  "FacebookID": "fb123"
+  "FacebookID": "fb123",
+  "EditedName": "Pavan EVS Edited",
+  "EditedDescription": "Updated Test Desc",
+  "EditedBillingName": "Updated Billing Name",
+  "EditedSalesPerson": "Jane",
+  "EditedTTOptions": "TT2",
+  "EditedAppID": "67890",
+  "EditedTTTemplate": "TT Template Edited",
+  "EditedPlayerSize": "720"
 }

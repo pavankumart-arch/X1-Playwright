@@ -1,7 +1,8 @@
 {
+  
   "name": "Rooftop",
   "description": "Test rooftop description",
-  "rooftopID": "RT1001",
+  "DealerCode": "RT1001",
   "franchise": "FRN67890",
   "playerColor": "#FF5733",
   "salesPersonName": "John Doe",
@@ -15,5 +16,15 @@
   "facebookID": "FB123",
   "dealerGroups": "Group A",
   "comments": "Automation Test",
-  "active": true
+  "active": true,
+
+
+  "rooftopname":"Premier Auto Group",
+  "existingrooftopname":"Perf Rooftop",
+  "existingdelearID":"TEST01",
+  "RooftopInventory": "Premier Honda  Westside",
+
+  "resellerrooftopname":"Premier Honda  Westside"
+
+
 }

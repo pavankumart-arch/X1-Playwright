@@ -1,88 +1,59 @@
-  import { test, expect } from '@playwright/test';
-  import { AddRooftop } from '../../pages/Rooftops/AddRooftop';
-  import { Login } from '../../pages/Login/Loginpage';
-  import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
+import { test, expect } from '@playwright/test';
+import { AddRooftop } from '../../pages/Rooftops/AddRooftop';
+import { DeleteRooftop } from '../../pages/Rooftops/DeleteRooftop';
+import { Login } from '../../pages/Login/Loginpage';
+import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
+import { RooftopNavigation } from '../../pages/Rooftops/RooftopNavigation';
+import AddRooftopData from '../../testdata/AddRooftopData.json';
 
-  test("Delete Rooftop Functionality", async ({ page }) => {
+test("Delete Rooftop Functionality", async ({ page }, testInfo) => {
 
-    const loginPage = new Login(page);
-    await loginPage.navigateToURL();
-    await loginPage.loginToApplication();
+  const loginPage = new Login(page);
+  const addRooftop = new AddRooftop(page);
+  const deleteRooftop = new DeleteRooftop(page);
 
-    const navigation = new LeftsideNavigation(page);
+  // Login and navigate
 
-    await navigation.goToDashboard();
-    await page.waitForLoadState('networkidle');
+  await loginPage.navigateToURL();
+  await loginPage.loginToApplication();
 
-    await navigation.goToResellers();
-    await page.waitForLoadState('networkidle');
+  const navigation = new LeftsideNavigation(page);
 
-    const resellerName = "Premier Auto Group";
+  await navigation.goToDashboard();
+  await page.waitForLoadState('networkidle');
 
-    const resellerButton = page
-      .locator('table')
-      .getByRole('button', { name: resellerName })
-      .first();
+  await navigation.goToResellers();
+  await page.waitForLoadState('networkidle');
 
-    await resellerButton.click();
-    await page.waitForLoadState('networkidle');
+   const rooftopNavigation = new RooftopNavigation(page);
+ // Step 1 & Step 2
+  await rooftopNavigation.searchAndOpenRecord(
+    AddRooftopData.rooftopname,
+    testInfo
+  );
 
-    const addRooftop = new AddRooftop(page);
-    const rooftopName = `Rooftop_${Date.now()}`;
-    
-    const createdRooftopName = await addRooftop.AddRooftop(rooftopName);
-    
-    console.log(`\n✅ Rooftop created: ${createdRooftopName}`);
+  // Navigate to rooftops list
+  await navigation.goToListofRooftops();
+  await page.waitForLoadState('networkidle');
 
-    await page.waitForTimeout(1000);
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(500);
+  // Add rooftop
+  const rooftopName = `Rooftop_${Date.now()}`;
+  const createdRooftopName = await addRooftop.AddRooftop(testInfo, rooftopName);
+  console.log(`\n✅ Rooftop created: ${createdRooftopName}`);
 
-    // Search and Delete
-    const searchBox = page.getByPlaceholder('Search...');
-    await searchBox.click();
-    await searchBox.fill('');
-    await page.waitForTimeout(300);
-    await searchBox.fill(createdRooftopName);
-    await page.waitForTimeout(800);
+  // Reload page
+  await page.waitForTimeout(1000);
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(500);
 
-    // Click Delete button
-    const deleteButton = page
-      .locator('table tbody tr')
-      .filter({ hasText: createdRooftopName })
-      .locator('td').last()
-      .locator('button')
-      .last();
-    
-    await deleteButton.click();
-    await page.waitForTimeout(500);
-    
-    // Confirm deletion
-    const confirmButton = page.locator('button:has-text("Delete")').last();
-    await confirmButton.click();
+  // Delete rooftop
+  const result = await deleteRooftop.DeleteRooftop(createdRooftopName, testInfo);
 
-    await page.waitForTimeout(2000);
-    await page.waitForLoadState('networkidle');
+  // HARD ASSERTIONS - This ensures the test shows as FAILED in the report
+  // If these fail, the Playwright report will show the test as FAILED
+  expect(result.deletePassed, 'Delete button click should succeed').toBe(true);
+  expect(result.verificationPassed, 'Rooftop should be deleted successfully').toBe(true);
 
-    // Verify deletion
-    await searchBox.click();
-    await searchBox.fill('');
-    await page.waitForTimeout(300);
-    await searchBox.fill(createdRooftopName);
-    await page.waitForTimeout(800);
-
-    const noDataMessage = page.locator('text=No data available');
-    const deletionPassed = await noDataMessage.isVisible().catch(() => false);
-
-    // Summary Result
-    console.log(`\n${"=".repeat(50)}`);
-    console.log(`SUMMARY - Delete Rooftop Functionality`);
-    console.log(`${"=".repeat(50)}`);
-    console.log(`Expected: Rooftop should be deleted successfully`);
-    console.log(`Actual: ${deletionPassed ? 'Rooftop deleted successfully' : 'Deletion failed'}`);
-    console.log(`Status: ${deletionPassed ? 'PASS ✅' : 'FAIL ❌'}`);
-    console.log(`${"=".repeat(50)}`);
-
-    expect(deletionPassed, 'Rooftop should be deleted').toBeTruthy();
-  });
+  console.log(`\n✅ Test completed successfully!`);
+});

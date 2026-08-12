@@ -1,4 +1,6 @@
 import { Page, Locator, expect, TestInfo } from '@playwright/test';
+import { Reporter } from '../utils/NewReport';
+
 
 export class ResellerColumns {
 
@@ -45,50 +47,9 @@ export class ResellerColumns {
     }
 
     // ============================================
-    // COLUMN VALIDATION REPORT
+    // COLUMN VALIDATION USING REPORTER
     // ============================================
-
-    for (let i = 0; i < expectedHeaders.length; i++) {
-
-      const expected = expectedHeaders[i];
-
-      const actual = actualHeaders[i] || 'MISSING';
-
-      const status =
-        expected === actual
-          ? 'PASSED'
-          : 'FAILED';
-
-      testInfo.annotations.push({
-        type: `COLUMN ${i + 1}`,
-
-        description:
-`
-========================================
-STEP     : Verify Column "${expected}"
-
-EXPECTED : ${expected}
-
-ACTUAL   : ${actual}
-
-STATUS   : ${status}
-========================================
-`
-      });
-
-      console.log(`
-========================================
-STEP     : Verify Column "${expected}"
-
-EXPECTED : ${expected}
-
-ACTUAL   : ${actual}
-
-STATUS   : ${status}
-========================================
-`);
-
-      expect.soft(actual).toBe(expected);
-    }
+    
+    Reporter.validateColumns(expectedHeaders, actualHeaders, testInfo);
   }
 }

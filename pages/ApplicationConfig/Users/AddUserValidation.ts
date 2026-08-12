@@ -1,6 +1,7 @@
 import { expect, Locator, Page, TestInfo } from '@playwright/test';
-import { logAndValidate } from '../../utils/reportUtil';
 import { BasePage } from '../../BasePage';
+import { Reporter } from '../../utils/NewReport';
+
 
 export class UserValidation extends BasePage {
 
@@ -38,7 +39,6 @@ export class UserValidation extends BasePage {
   emailValidationMessage: Locator;
 
   constructor(page: Page) {
-
     super(page);
 
     // Buttons
@@ -73,7 +73,6 @@ export class UserValidation extends BasePage {
     this.usernameCharCountMessage = page.getByText('Must be at least 3 characters long.');
     this.passwordCharCountMessage = page.getByText('Must be at least 6 characters long.');
     this.emailValidationMessage = page.getByText('Invalid email address');
-
   }
 
   // =========================================================
@@ -81,10 +80,22 @@ export class UserValidation extends BasePage {
   // =========================================================
 
   async clickOnAddUserButton() {
-
     await this.addUserButton.click();
     await this.page.waitForTimeout(2000);
+  }
 
+  // =========================================================
+  // Helper method for text validation
+  // =========================================================
+
+  private async validateText(
+    actual: string | null | undefined,
+    expected: string,
+    fieldName: string,
+    testInfo: TestInfo
+  ) {
+    const actualText = actual?.trim() || '';
+    Reporter.validateData(expected, actualText, fieldName, testInfo);
   }
 
   // =========================================================
@@ -92,201 +103,37 @@ export class UserValidation extends BasePage {
   // =========================================================
 
   async verifyLabelsAndButtonText(testInfo: TestInfo) {
+    // Validate User Name label
+    const usernameText = await this.username.textContent();
+    await this.validateText(usernameText, 'User Name*', 'User Name label', testInfo);
 
-    try {
+    // Validate Password label
+    const passwordText = await this.password.textContent();
+    await this.validateText(passwordText, 'Password*', 'Password label', testInfo);
 
-      const usernameText = await this.username.textContent();
+    // Validate User Type label
+    const userTypeText = await this.userType.textContent();
+    await this.validateText(userTypeText, 'User Type*', 'User Type label', testInfo);
 
-      expect.soft(usernameText?.trim()).toBe('User Name*');
+    // Validate Reseller label
+    const resellerText = await this.reseller.textContent();
+    await this.validateText(resellerText, 'Reseller*', 'Reseller label', testInfo);
 
-      logAndValidate(
-        {
-          step: 'Verify User Name label',
-          expected: 'User Name*',
-          actual: usernameText?.trim() || '',
-        },
-        testInfo
-      );
+    // Validate Email label
+    const emailText = await this.email.textContent();
+    await this.validateText(emailText, 'Email*', 'Email label', testInfo);
 
-    } catch (error) {
+    // Validate Active label
+    const activeText = await this.active.textContent();
+    await this.validateText(activeText, 'Active', 'Active label', testInfo);
 
-      console.log('Verify User Name Label Failed');
-      console.log(error);
+    // Validate Cancel button text
+    const cancelButtonText = await this.cancelButton.textContent();
+    await this.validateText(cancelButtonText, 'Cancel', 'Cancel button text', testInfo);
 
-    }
-
-    try {
-
-      const passwordText = await this.password.textContent();
-
-      expect.soft(passwordText?.trim()).toBe('Password*');
-
-      logAndValidate(
-        {
-          step: 'Verify Password label',
-          expected: 'Password*',
-          actual: passwordText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Password Label Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const userTypeText = await this.userType.textContent();
-
-      expect.soft(userTypeText?.trim()).toBe('User Type*');
-
-      logAndValidate(
-        {
-          step: 'Verify User Type label',
-          expected: 'User Type*',
-          actual: userTypeText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify User Type Label Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const resellerText = await this.reseller.textContent();
-
-      expect.soft(resellerText?.trim()).toBe('Reseller*');
-
-      logAndValidate(
-        {
-          step: 'Verify Reseller label',
-          expected: 'Reseller*',
-          actual: resellerText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Reseller Label Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const emailText = await this.email.textContent();
-
-      expect.soft(emailText?.trim()).toBe('Email*');
-
-      logAndValidate(
-        {
-          step: 'Verify Email label',
-          expected: 'Email*',
-          actual: emailText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Email Label Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const activeText = await this.active.textContent();
-
-      expect.soft(activeText?.trim()).toBe('Active');
-
-      logAndValidate(
-        {
-          step: 'Verify Active label',
-          expected: 'Active',
-          actual: activeText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Active Label Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const cancelButtonText = await this.cancelButton.textContent();
-
-      expect.soft(cancelButtonText?.trim()).toBe('Cancel');
-
-      logAndValidate(
-        {
-          step: 'Verify Cancel button text',
-          expected: 'Cancel',
-          actual: cancelButtonText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Cancel Button Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const saveUserButtonText = await this.saveUserButton.textContent();
-
-      expect.soft(saveUserButtonText?.trim()).toBe('Save User');
-
-      logAndValidate(
-        {
-          step: 'Verify Save User button text',
-          expected: 'Save User',
-          actual: saveUserButtonText?.trim() || '',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Save User Button Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      logAndValidate(
-        {
-          step: 'Verify labels and button spellings',
-          expected: 'All labels and buttons have correct spelling',
-          actual: 'All labels and buttons have correct spelling',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Labels And Buttons Summary Failed');
-      console.log(error);
-
-    }
-
+    // Validate Save User button text
+    const saveUserButtonText = await this.saveUserButton.textContent();
+    await this.validateText(saveUserButtonText, 'Save User', 'Save User button text', testInfo);
   }
 
   // =========================================================
@@ -294,117 +141,25 @@ export class UserValidation extends BasePage {
   // =========================================================
 
   async verifyPlaceholderText(testInfo: TestInfo) {
+    // Validate Username placeholder
+    const usernamePlaceholderText = await this.usernamePlaceholder.getAttribute('placeholder');
+    Reporter.validateData('User Name', usernamePlaceholderText, 'Username placeholder', testInfo);
 
-    try {
+    // Validate Password placeholder
+    const passwordPlaceholderText = await this.passwordPlaceholder.getAttribute('placeholder');
+    Reporter.validateData('Password', passwordPlaceholderText, 'Password placeholder', testInfo);
 
-      const usernamePlaceholderText = await this.usernamePlaceholder.getAttribute('placeholder');
+    // Validate User Type placeholder
+    const userTypeText = await this.userTypePlaceholder.textContent();
+    Reporter.validateData('Select an option', userTypeText?.trim(), 'User Type placeholder', testInfo);
 
-      expect.soft(usernamePlaceholderText).toBe('User Name');
+    // Validate Reseller placeholder
+    const resellerPlaceholderText = await this.resellerPlaceholder.textContent();
+    Reporter.validateData('Select an option', resellerPlaceholderText?.trim(), 'Reseller placeholder', testInfo);
 
-      logAndValidate(
-        {
-          step: 'Verify Username placeholder text',
-          expected: 'User Name',
-          actual: `${usernamePlaceholderText}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Username Placeholder Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const passwordPlaceholderText = await this.passwordPlaceholder.getAttribute('placeholder');
-
-      expect.soft(passwordPlaceholderText).toBe('Password');
-
-      logAndValidate(
-        {
-          step: 'Verify Password placeholder text',
-          expected: 'Password',
-          actual: `${passwordPlaceholderText}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Password Placeholder Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const userTypeText = await this.userTypePlaceholder.textContent();
-
-      expect.soft(userTypeText?.trim()).toBe('Select an option');
-
-      logAndValidate(
-        {
-          step: 'Verify User Type placeholder text',
-          expected: 'Select an option',
-          actual: `${userTypeText}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify User Type Placeholder Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const resellerPlaceholderText = await this.resellerPlaceholder.textContent();
-
-      expect.soft(resellerPlaceholderText).toBe('Select an option');
-
-      logAndValidate(
-        {
-          step: 'Verify Reseller placeholder text',
-          expected: 'Select an option',
-          actual: `${resellerPlaceholderText}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Reseller Placeholder Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const emailPlaceholderText = await this.emailPlaceholder.getAttribute('placeholder');
-
-      expect.soft(emailPlaceholderText).toBe('Email');
-
-      logAndValidate(
-        {
-          step: 'Verify Email placeholder text',
-          expected: 'Email',
-          actual: `${emailPlaceholderText}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Verify Email Placeholder Failed');
-      console.log(error);
-
-    }
-
+    // Validate Email placeholder
+    const emailPlaceholderText = await this.emailPlaceholder.getAttribute('placeholder');
+    Reporter.validateData('Email', emailPlaceholderText, 'Email placeholder', testInfo);
   }
 
   // =========================================================
@@ -412,140 +167,32 @@ export class UserValidation extends BasePage {
   // =========================================================
 
   async verifyRequiredFieldValidations(testInfo: TestInfo) {
-
     await this.clickOnElement(this.saveUserButton);
     await this.page.waitForTimeout(2000);
 
-    try {
+    // Validate Username required message
+    const usernameError = await this.usernameErrorMessage.textContent();
+    Reporter.validateData('User Name is required', usernameError?.trim(), 'Username required validation', testInfo);
 
-      const usernameError = await this.usernameErrorMessage.textContent();
+    // Validate Password required message
+    const passwordError = await this.passwordErrorMessage.textContent();
+    Reporter.validateData('Password is required', passwordError?.trim(), 'Password required validation', testInfo);
 
-      expect.soft(usernameError?.trim()).toBe('User Name is required');
+    // Validate User Type required message
+    const userTypeError = await this.userTypeErrorMessage.textContent();
+    Reporter.validateData('User Type is required', userTypeError?.trim(), 'User Type required validation', testInfo);
 
-      logAndValidate(
-        {
-          step: 'Verify Username required validation message',
-          expected: 'User Name is required',
-          actual: `${usernameError}`,
-        },
-        testInfo
-      );
+    // Validate Reseller required message
+    const resellerError = await this.resellerErrorMessage.textContent();
+    Reporter.validateData('Reseller is required', resellerError?.trim(), 'Reseller required validation', testInfo);
 
-    } catch (error) {
+    // Validate Email required message
+    const emailError = await this.emailErrorMessage.textContent();
+    Reporter.validateData('Email is required', emailError?.trim(), 'Email required validation', testInfo);
 
-      console.log('Username Required Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const passwordError = await this.passwordErrorMessage.textContent();
-
-      expect.soft(passwordError?.trim()).toBe('Password is required');
-
-      logAndValidate(
-        {
-          step: 'Verify Password required validation message',
-          expected: 'Password is required',
-          actual: `${passwordError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Password Required Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const userTypeError = await this.userTypeErrorMessage.textContent();
-
-      expect.soft(userTypeError?.trim()).toBe('User Type is required');
-
-      logAndValidate(
-        {
-          step: 'Verify User Type required validation message',
-          expected: 'User Type is required',
-          actual: `${userTypeError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('User Type Required Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const resellerError = await this.resellerErrorMessage.textContent();
-
-      expect.soft(resellerError?.trim()).toBe('Reseller is required');
-
-      logAndValidate(
-        {
-          step: 'Verify Reseller required validation message',
-          expected: 'Reseller is required',
-          actual: `${resellerError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Reseller Required Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const emailError = await this.emailErrorMessage.textContent();
-
-      expect.soft(emailError?.trim()).toBe('Email is required');
-
-      logAndValidate(
-        {
-          step: 'Verify Email required validation message',
-          expected: 'Email is required',
-          actual: `${emailError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Email Required Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      await expect.soft(this.checkbox).toBeChecked();
-
-      logAndValidate(
-        {
-          step: 'Verify all required field validation messages',
-          expected: 'All validation messages are correct.',
-          actual: 'All validation messages are correct.',
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Checkbox Validation Failed');
-      console.log(error);
-
-    }
-
+    // Validate checkbox is checked by default
+    const isChecked = await this.checkbox.isChecked();
+    Reporter.validateData(true, isChecked, 'Active checkbox default state', testInfo);
   }
 
   // =========================================================
@@ -553,89 +200,59 @@ export class UserValidation extends BasePage {
   // =========================================================
 
   async verifyInvalidFieldValidations(testInfo: TestInfo) {
+    // Enter invalid data - Fixed: Use placeholder locators instead of label locators
+    await this.usernamePlaceholder.fill('ab');
+    await this.passwordPlaceholder.fill('123');
+    await this.emailPlaceholder.fill('TPK');
 
-    try {
+    await this.clickOnElement(this.saveUserButton);
+    await this.page.waitForTimeout(2000);
 
-      await this.fillElement(this.username, 'ab');
-      await this.fillElement(this.password, '123');
-      await this.email.fill('TPK');
+    // Validate Username character count message
+    const usernameError = await this.usernameCharCountMessage.textContent();
+    Reporter.validateData(
+      'Must be at least 3 characters long.',
+      usernameError?.trim(),
+      'Username character count validation',
+      testInfo
+    );
 
-      await this.clickOnElement(this.saveUserButton);
-      await this.page.waitForTimeout(2000);
+    // Validate Password character count message
+    const passwordError = await this.passwordCharCountMessage.textContent();
+    Reporter.validateData(
+      'Must be at least 6 characters long.',
+      passwordError?.trim(),
+      'Password character count validation',
+      testInfo
+    );
 
-    } catch (error) {
-
-      console.log('Entering Invalid Data Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const usernameError = await this.usernameCharCountMessage.textContent();
-
-      expect.soft(usernameError?.trim()).toBe('Must be at least 3 characters long.');
-
-      logAndValidate(
-        {
-          step: 'Verify Username invalid validation message',
-          expected: 'Must be at least 3 characters long.',
-          actual: `${usernameError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Username Invalid Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const passwordError = await this.passwordCharCountMessage.textContent();
-
-      expect.soft(passwordError?.trim()).toBe('Must be at least 6 characters long.');
-
-      logAndValidate(
-        {
-          step: 'Verify Password invalid validation message',
-          expected: 'Must be at least 6 characters long.',
-          actual: `${passwordError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Password Invalid Validation Failed');
-      console.log(error);
-
-    }
-
-    try {
-
-      const emailError = await this.emailValidationMessage.textContent();
-
-      expect.soft(emailError?.trim()).toBe('Invalid email address');
-
-      logAndValidate(
-        {
-          step: 'Verify Email invalid validation message',
-          expected: 'Invalid email address',
-          actual: `${emailError}`,
-        },
-        testInfo
-      );
-
-    } catch (error) {
-
-      console.log('Email Invalid Validation Failed');
-      console.log(error);
-
-    }
-
+    // Validate Email validation message
+    const emailError = await this.emailValidationMessage.textContent();
+    Reporter.validateData(
+      'Invalid email address',
+      emailError?.trim(),
+      'Email format validation',
+      testInfo
+    );
   }
 
+  // =========================================================
+  // Complete User Form Validation (Bonus)
+  // =========================================================
+
+  async verifyCompleteFormValidation(testInfo: TestInfo) {
+    // Start test reporting
+    Reporter.startTest();
+
+    try {
+      await this.clickOnAddUserButton();
+      await this.verifyLabelsAndButtonText(testInfo);
+      await this.verifyPlaceholderText(testInfo);
+      await this.verifyRequiredFieldValidations(testInfo);
+      await this.verifyInvalidFieldValidations(testInfo);
+    } finally {
+      // End test and generate summary
+      Reporter.endTest(testInfo);
+    }
+  }
 }

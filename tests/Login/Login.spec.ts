@@ -1,53 +1,25 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { Login } from '../../pages/Login/Loginpage';
+import { Reporter } from '../../pages/utils/NewReport';
 
-test.describe(
-  'Login Validation Test Suite',
-  () => {
+test.describe('Login Validation Test Suite', () => {
 
     test(
-      'Verify the Login functionality',
-      async ({ page }, testInfo) => {
+        'Verify the Login functionality',
+        async ({ page }, testInfo) => {
 
-        const loginPage = new Login(page);
+            Reporter.startTest();
 
-        // Navigate to URL
-        await loginPage.navigateToURL();
+            const loginPage = new Login(page);
 
-        // Login
-        const homePage =
-          await loginPage.loginToApplication();
+            await loginPage.navigateToURL();
 
-        // ✅ Dynamic Values
-        const expectedResult = 'Homepage should be displayed after login';
+            await loginPage.verifyLoginAndLogout(
+                testInfo
+            );
 
-        const actualResult =
-          homePage !== null
-            ? 'Homepage displayed successfully'
-            : 'Homepage not displayed';
-
-        const loginStatus =
-          homePage !== null ? 'PASS' : 'FAIL';
-
-        // ✅ TOP REPORT
-        testInfo.annotations.push({
-          type: 'REPORT : 1',
-          description:
-`Verify Login functionality
-STATUS   : ${loginStatus} ${loginStatus === 'PASS' ? '✅' : '❌'}
-EXPECTED : ${expectedResult}
-ACTUAL   : ${actualResult}`
-        });
-
-        // Assertion
-        expect(homePage).not.toBeNull();
-
-        // Verify Logo
-        await homePage!.VerifytheEVSLogo();
-
-        // Logout
-        await homePage!.VerifytheLogoutfunctionality();
-      }
+            Reporter.endTest(testInfo);
+        }
     );
-  }
-);
+
+});

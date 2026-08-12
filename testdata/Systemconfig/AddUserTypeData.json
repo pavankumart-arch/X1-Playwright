@@ -1,0 +1,15 @@
+{
+  "createUserType": {
+    "UserTypeName": "AutomationUser",
+    "TypeKey": "automation_manager",
+    "Description": "Automation Created User Type",
+    "Active": true
+  },
+
+  "editUserType": {
+    "UserTypeName": "Manager",
+    "TypeKey": "manager",
+    "Description": "Updated User Type Description",
+    "Active": true
+  }
+}

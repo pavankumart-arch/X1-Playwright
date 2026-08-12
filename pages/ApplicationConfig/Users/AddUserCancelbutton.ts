@@ -1,6 +1,6 @@
-import { Locator, Page, TestInfo } from '@playwright/test';
-import { logAndValidate } from '../../utils/reportUtil';
+import { Locator, Page, TestInfo, expect } from '@playwright/test';
 import { BasePage } from '../../BasePage';
+import { Reporter } from '../../utils/NewReport';
 
 export class VerifyUserCancelButton extends BasePage {
 
@@ -10,40 +10,48 @@ export class VerifyUserCancelButton extends BasePage {
   constructor(page: Page) {
     super(page);
 
-    this.addUserButton = page.locator('[class="lucide lucide-plus"]')
-    this.cancelButton = page.getByRole('button', { name: 'Cancel' });
+    this.addUserButton =
+      page.locator('[class="lucide lucide-plus"]');
+
+    this.cancelButton =
+      page.getByRole('button', { name: 'Cancel' });
   }
 
-  async verifyUserCancelButton(testInfo: TestInfo) {
+  async verifyUserCancelButton(
+    testInfo: TestInfo
+  ): Promise<void> {
 
-    // Step 1: Open the Add User form
+    // Open Add User Form
     await this.addUserButton.click();
-    await this.page.waitForTimeout(3000);
 
-    // Step 2: Click the Cancel button
+    // Wait for Cancel Button
+    await this.cancelButton.waitFor({
+      state: 'visible'
+    });
+
+    // Click Cancel
     await this.cancelButton.click();
-    await this.page.waitForTimeout(3000);
 
-    // Step 3: Wait for the Add User button to be visible again (form closed)
-    await this.addUserButton.waitFor({ state: 'visible' });
+    // Verify Form Closed
+    await this.addUserButton.waitFor({
+      state: 'visible'
+    });
 
-    // Step 4: Capture actual visibility
-    const actual = await this.addUserButton.isVisible();
+    const formClosed =
+      await this.addUserButton.isVisible();
 
-    // Step 5: Prepare custom messages
-    const expectedMessage = 'Cancel button functionality is working.';
-    const actualMessage = actual
-      ? 'Cancel button functionality is working.'
-      : 'Cancel button functionality is not working.';
-
-    // Step 6: Validate using logAndValidate
-    logAndValidate(
-      {
-        step: 'Verify Cancel button functionality',
-        expected: expectedMessage,
-        actual: actualMessage,
-      },
+    Reporter.validateData(
+      'Form Closed Successfully',
+      formClosed
+        ? 'Form Closed Successfully'
+        : 'Form Still Open',
+      'Cancel Button Verification',
       testInfo
     );
+
+    expect(
+      formClosed,
+      'Cancel button did not close the Add User form'
+    ).toBeTruthy();
   }
 }

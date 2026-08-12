@@ -3,10 +3,14 @@ import { Login } from '../../pages/Login/Loginpage';
 import { LeftsideNavigation } from '../../pages/Navigations/LeftSideNavigation';
 import { RooftopColumns } from '../../pages/Rooftops/RooftopColumns';
 import { logAndValidate } from '../../utils/reportUtil';
+import { RooftopNavigation } from '../../pages/Rooftops/RooftopNavigation';
+import AddRooftopData from '../../testdata/AddRooftopData.json';
 
 test("Verify Rooftop Column Headings", async ({ page }, testInfo) => {
 
   const loginPage = new Login(page);
+  // Login and navigate
+
   await loginPage.navigateToURL();
   await loginPage.loginToApplication();
 
@@ -18,15 +22,17 @@ test("Verify Rooftop Column Headings", async ({ page }, testInfo) => {
   await navigation.goToResellers();
   await page.waitForLoadState('networkidle');
 
-  const resellerName = "Premier Auto Group";
+   const rooftopNavigation = new RooftopNavigation(page);
+ // Step 1 & Step 2
+  await rooftopNavigation.searchAndOpenRecord(
+    AddRooftopData.rooftopname,
+    testInfo
+  );
 
-  const resellerButton = page
-    .locator('table')
-    .getByRole('button', { name: resellerName })
-    .first();
-
-  await resellerButton.click();
+  // Navigate to rooftops list
+  await navigation.goToListofRooftops();
   await page.waitForLoadState('networkidle');
+
 
   // Verify Rooftop columns
   const rooftopColumns = new RooftopColumns(page);
@@ -44,7 +50,6 @@ test("Verify Rooftop Column Headings", async ({ page }, testInfo) => {
       step: `Column ${i + 1}: ${expected}`,
       expected: expected,
       actual: actual,
-      isSummary: false
     }, testInfo);
   }
 
@@ -53,7 +58,6 @@ test("Verify Rooftop Column Headings", async ({ page }, testInfo) => {
     step: 'SUMMARY - Rooftop Column Headings',
     expected: expectedColumns.join(', '),
     actual: actualHeaders.join(', '),
-    isSummary: true
   }, testInfo);
 
   // Console output (for terminal only)

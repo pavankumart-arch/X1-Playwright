@@ -17,7 +17,7 @@
   "include": [
     "**/*.ts",
     "**/*.js"
-, "pages/ApplicationConfig/DomainData/Make/UpdateMakets"  ],
+, "pages/ApplicationConfig/DomainData/Make/UpdateMakets.ts"  ],
   "exclude": [
     "node_modules",
     "dist"

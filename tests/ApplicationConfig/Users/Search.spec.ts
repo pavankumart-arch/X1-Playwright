@@ -1,87 +1,69 @@
-import { test }
-  from '@playwright/test';
+import { test } from '@playwright/test';
+import { LeftsideNavigation } from '../../../pages/Navigations/LeftSideNavigation';
+import { Login } from '../../../pages/Login/Loginpage';
+import { UserSearch } from '../../../pages/ApplicationConfig/Users/Search';
+import { Reporter } from '../../../pages/utils/NewReport';
 
-import { LeftsideNavigation }
-  from '../../../pages/Navigations/LeftSideNavigation';
+test.describe('User Search Module', () => {
+  test('Verify User Search Functionality', async ({ page }, testInfo) => {
+    // ============================================
+    // TEST TIMEOUT
+    // ============================================
+    test.setTimeout(120000);
 
-import { Login }
-  from '../../../pages/Login/Loginpage';
-
-import { UserSearch }
-  from '../../../pages/ApplicationConfig/Users/Search';
-
-test(
-  'Verify User Search Functionality',
-  async ({ page }, testInfo) => {
+    // ============================================
+    // START REPORTER
+    // ============================================
+    Reporter.startTest();
 
     // ============================================
     // PAGE OBJECTS
     // ============================================
-
-    const loginPage =
-      new Login(page);
-
-    const navigation =
-      new LeftsideNavigation(page);
-
-    const search =
-      new UserSearch(page);
+    const loginPage = new Login(page);
+    const navigation = new LeftsideNavigation(page);
+    const search = new UserSearch(page);
 
     // ============================================
     // LOGIN
     // ============================================
-
-    await loginPage
-      .navigateToURL();
-
-    await loginPage
-      .loginToApplication();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
+    await loginPage.navigateToURL();
+    await loginPage.loginToApplication();
+    await page.waitForLoadState('networkidle');
 
     // ============================================
     // NAVIGATE TO USERS PAGE
     // ============================================
-
-    await navigation
-      .gotoApplicationConfig();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
-
-    await navigation
-      .goToUsers();
-
-    await page.waitForLoadState(
-      'networkidle'
-    );
+    await navigation.gotoApplicationConfig();
+    await navigation.goToUsers();
+    await page.waitForLoadState('networkidle');
 
     // ============================================
     // USER SEARCH VALIDATIONS
     // ============================================
+    await search.searchByID(testInfo);
+    await search.searchByUsername(testInfo);
+    await search.searchByEmail(testInfo);
+    await search.searchByReseller(testInfo);
+    await search.searchByUserType(testInfo);
 
-    await search
-      .searchByID(testInfo);
+    // ============================================
+    // ACTIVE SEARCH
+    // ============================================
+    await search.searchByStatus(testInfo);
 
-    await search
-      .searchByUsername(testInfo);
+    // ============================================
+    // INACTIVE SEARCH
+    // ============================================
+    await search.searchByInactiveStatus(testInfo);
 
-    await search
-      .searchByEmail(testInfo);
+    // ============================================
+    // INVALID SEARCH
+    // ============================================
+    await search.invalidSearch(testInfo);
 
-    await search
-      .searchByReseller(testInfo);
-
-    await search
-      .searchByUserType(testInfo);
-
-    await search
-      .searchByStatus(testInfo);
-
-    await search
-      .invalidSearch(testInfo);
-  }
-);
+    // ============================================
+    // END REPORTER
+    // ============================================
+    Reporter.endTest(testInfo);
+  });
+});

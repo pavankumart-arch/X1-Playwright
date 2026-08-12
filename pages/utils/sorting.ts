@@ -1,7 +1,6 @@
 import { Page, Locator, TestInfo } from '@playwright/test';
 import { logAndValidate } from './reportUtil';
 
-// ================= MAIN =================
 
 export async function validateColumnSortingWithPagination(
   page: Page,

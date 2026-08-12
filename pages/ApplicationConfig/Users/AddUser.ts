@@ -1,9 +1,8 @@
 import { Locator, Page, TestInfo, expect } from '@playwright/test';
 import { BasePage } from '../../BasePage';
-import { logAndValidate } from '../../utils/reportUtil';
 import Adduserdata from '../../../testdata/AddUser.json';
 import { searchbyName } from '../../utils/Searchnew';
-
+import { Reporter } from '../../utils/NewReport';
 
 export class AddUser extends BasePage {
 
@@ -18,11 +17,11 @@ export class AddUser extends BasePage {
   activecheckbox: Locator;
   searchInput: Locator;
 
-  // Store latest created username
-  private expectedUsername: string = '';
+  // Store created user details
+  public expectedUsername: string = '';
+  public expectedEmail: string = '';
 
   constructor(page: Page) {
-
     super(page);
 
     this.saveUserButton =
@@ -52,57 +51,50 @@ export class AddUser extends BasePage {
     this.activecheckbox =
       page.locator('svg.lucide-check');
 
-    // Search Box
-
     this.searchInput =
       page.getByPlaceholder('Search');
   }
 
-  async addUser() {
+  async addUser(): Promise<void> {
 
     // Open Add User Form
-
     await this.addUserButton.click();
 
     // Wait for Form
-
     await this.username.waitFor({
       state: 'visible'
     });
 
     // Generate Unique Username
-
     const uniqueUsername =
       `${Adduserdata.username}_${Date.now()}`;
 
     // Store Username
-
     this.expectedUsername = uniqueUsername;
 
     // Generate Unique Email
-
     const emailParts =
       Adduserdata.email.split('@');
 
     const uniqueEmail =
       `${emailParts[0]}_${Date.now()}@${emailParts[1]}`;
 
-    // Fill Username
+    // Store Email
+    this.expectedEmail = uniqueEmail;
 
+    // Fill Username
     await this.fillElement(
       this.username,
       uniqueUsername
     );
 
     // Fill Password
-
     await this.fillElement(
       this.password,
       Adduserdata.password
     );
 
     // Select User Type
-
     await this.userType.click();
 
     const userTypeOptions =
@@ -113,7 +105,6 @@ export class AddUser extends BasePage {
       .click();
 
     // Select Reseller
-
     await this.reseller.click();
 
     const resellerOptions =
@@ -124,20 +115,17 @@ export class AddUser extends BasePage {
       .click();
 
     // Fill Email
-
     await this.fillElement(
       this.email,
       uniqueEmail
     );
 
-    // Click Save User
-
+    // Save User
     await this.clickOnElement(
       this.saveUserButton
     );
 
-    // Wait Until User Saved
-
+    // Wait until Save Completes
     await this.addUserButton.waitFor({
       state: 'visible'
     });
@@ -145,15 +133,15 @@ export class AddUser extends BasePage {
     console.log(
       `✅ User Created Successfully: ${this.expectedUsername}`
     );
-  }
 
-  // Verify Added User in Table
+    console.log(
+      `✅ Email Created Successfully: ${this.expectedEmail}`
+    );
+  }
 
   async verifyAddedUserIsDisplayed(
     testInfo: TestInfo
   ): Promise<boolean> {
-
-    // Search User in Table
 
     const userFound =
       await searchbyName(
@@ -165,26 +153,22 @@ export class AddUser extends BasePage {
         1
       );
 
-    // Log Validation
+    const actualUser =
+      userFound
+        ? this.expectedUsername
+        : 'User Not Found';
 
-    logAndValidate(
-      {
-        step:
-          'Verify added user appears in summary table',
-
-        expected: this.expectedUsername,
-
-        actual:
-          userFound
-            ? this.expectedUsername
-            : '(not found)',
-      },
+    Reporter.validateData(
+      this.expectedUsername,
+      actualUser,
+      'Verify Created User',
       testInfo
     );
 
-    // Assertion
-
-    expect(userFound).toBeTruthy();
+    expect(
+      userFound,
+      `User "${this.expectedUsername}" was not found in the table`
+    ).toBeTruthy();
 
     return userFound;
   }

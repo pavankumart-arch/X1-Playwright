@@ -1,6 +1,7 @@
 import { Locator, Page, TestInfo } from '@playwright/test';
 import { BasePage } from '../BasePage';
-import { logAndValidate } from '../../utils/reportUtil';
+import { Reporter } from '../utils/NewReport';
+
 
 export class RooftopSorting extends BasePage {
 
@@ -29,11 +30,12 @@ export class RooftopSorting extends BasePage {
     
     const ascResult = await this.validateAllPagesSorting(columnIndex, 'ASC', columnName, testInfo);
 
-    logAndValidate({
-      step: `🔼 ASCENDING ORDER (${columnName}) - All Pages`,
-      expected: 'PASS',
-      actual: ascResult.passed ? 'PASS' : 'FAIL'
-    }, testInfo);
+    Reporter.validateData(
+      'PASS',
+      ascResult.passed ? 'PASS' : 'FAIL',
+      `🔼 ASCENDING ORDER (${columnName}) - All Pages`,
+      testInfo
+    );
 
     if (!ascResult.passed) {
       return { passed: false, error: `ASC sorting failed: ${ascResult.error}` };
@@ -47,11 +49,12 @@ export class RooftopSorting extends BasePage {
     
     const descResult = await this.validateAllPagesSorting(columnIndex, 'DESC', columnName, testInfo);
 
-    logAndValidate({
-      step: `🔽 DESCENDING ORDER (${columnName}) - All Pages`,
-      expected: 'PASS',
-      actual: descResult.passed ? 'PASS' : 'FAIL'
-    }, testInfo);
+    Reporter.validateData(
+      'PASS',
+      descResult.passed ? 'PASS' : 'FAIL',
+      `🔽 DESCENDING ORDER (${columnName}) - All Pages`,
+      testInfo
+    );
 
     if (!descResult.passed) {
       return { passed: false, error: `DESC sorting failed: ${descResult.error}` };
@@ -61,129 +64,212 @@ export class RooftopSorting extends BasePage {
   }
 
   private async validateAllPagesSorting(
-    columnIndex: number,
-    order: 'ASC' | 'DESC',
-    columnName: string,
-    testInfo: TestInfo
-  ): Promise<{ passed: boolean; error?: string }> {
+  columnIndex: number,
+  order: 'ASC' | 'DESC',
+  columnName: string,
+  testInfo: TestInfo
+): Promise<{ passed: boolean; error?: string }> {
 
-    let pageNumber = 1;
-    let isAllPass = true;
-    let previousLastValue: any = null;
-    let allValues: any[] = [];
-    let errorDetails: string[] = [];
+  let pageNumber = 1;
+  let isAllPass = true;
+  let previousLastValue: any = null;
+  let allValues: any[] = [];
+  let errorDetails: string[] = [];
 
-    try {
-      while (true) {
-        const currentPageValues = await this.getColumnValues(columnIndex, columnName);
-        console.log(`📄 Page ${pageNumber} - ${columnName} values: ${currentPageValues.length} rows`);
-        
-        allValues.push(...currentPageValues);
-        
-        // Check sorting within current page
-        const pageCheck = this.checkSorting(currentPageValues, order, columnName);
-        
-        if (pageCheck.expected !== pageCheck.actual) {
-          isAllPass = false;
-          const errorMsg = `Page ${pageNumber}: ${pageCheck.actual} (Expected: ${pageCheck.expected})`;
-          errorDetails.push(errorMsg);
-          logAndValidate({
-            step: `Page ${pageNumber} - ${columnName} (${order})`,
-            expected: pageCheck.expected,
-            actual: pageCheck.actual,
-            isSummary: false
-          }, testInfo);
+  try {
+    while (true) {
+
+      // Check if page is already closed
+      if (this.page.isClosed()) {
+        throw new Error('Page was closed unexpectedly');
+      }
+
+      const currentPageValues = await this.getColumnValues(columnIndex, columnName);
+
+      console.log(
+        `📄 Page ${pageNumber} - ${columnName} values: ${currentPageValues.length} rows`
+      );
+
+      allValues.push(...currentPageValues);
+
+      // Validate current page sorting
+      const pageCheck = this.checkSorting(
+        currentPageValues,
+        order,
+        columnName
+      );
+
+      if (pageCheck.expected !== pageCheck.actual) {
+        isAllPass = false;
+
+        const errorMsg =
+          `Page ${pageNumber}: ${pageCheck.actual} ` +
+          `(Expected: ${pageCheck.expected})`;
+
+        errorDetails.push(errorMsg);
+
+        Reporter.validateData(
+          pageCheck.expected,
+          pageCheck.actual,
+          `Page ${pageNumber} - ${columnName} (${order})`,
+          testInfo
+        );
+      } else {
+        Reporter.validateData(
+          'Sorted correctly',
+          'Sorted correctly',
+          `Page ${pageNumber} - ${columnName} (${order})`,
+          testInfo
+        );
+      }
+
+      // Cross-page validation
+      if (previousLastValue !== null && currentPageValues.length > 0) {
+
+        const firstValue = currentPageValues[0];
+
+        let crossPageValid = true;
+
+        if (order === 'ASC') {
+          crossPageValid =
+            this.compareValues(previousLastValue, firstValue) <= 0;
         } else {
-          logAndValidate({
-            step: `Page ${pageNumber} - ${columnName} (${order})`,
-            expected: 'Sorted correctly',
-            actual: 'Sorted correctly',
-            isSummary: false
-          }, testInfo);
+          crossPageValid =
+            this.compareValues(previousLastValue, firstValue) >= 0;
         }
-        
-        // Check cross-page sorting
-        if (previousLastValue !== null && currentPageValues.length > 0) {
-          const firstValue = currentPageValues[0];
-          let crossPageValid = true;
-          
-          if (order === 'ASC') {
-            crossPageValid = this.compareValues(previousLastValue, firstValue) <= 0;
-          } else {
-            crossPageValid = this.compareValues(previousLastValue, firstValue) >= 0;
-          }
-          
-          if (!crossPageValid) {
-            isAllPass = false;
-            const errorMsg = `Cross-page violation: Page ${pageNumber-1} last value (${previousLastValue}) ${order === 'ASC' ? '>' : '<'} Page ${pageNumber} first value (${firstValue})`;
-            errorDetails.push(errorMsg);
-            logAndValidate({
-              step: `Cross-page Check: Page ${pageNumber-1} → Page ${pageNumber} (${order})`,
-              expected: order === 'ASC' ? `${previousLastValue} <= ${firstValue}` : `${previousLastValue} >= ${firstValue}`,
-              actual: order === 'ASC' ? `${previousLastValue} > ${firstValue}` : `${previousLastValue} < ${firstValue}`,
-              isSummary: false
-            }, testInfo);
-          }
+
+        if (!crossPageValid) {
+
+          isAllPass = false;
+
+          const expectedMsg =
+            order === 'ASC'
+              ? `${previousLastValue} <= ${firstValue}`
+              : `${previousLastValue} >= ${firstValue}`;
+
+          const actualMsg =
+            order === 'ASC'
+              ? `${previousLastValue} > ${firstValue}`
+              : `${previousLastValue} < ${firstValue}`;
+
+          errorDetails.push(
+            `Cross-page violation between Page ${pageNumber - 1} and Page ${pageNumber}`
+          );
+
+          Reporter.validateData(
+            expectedMsg,
+            actualMsg,
+            `Cross-page Check: Page ${pageNumber - 1} → Page ${pageNumber} (${order})`,
+            testInfo
+          );
         }
-        
-        // Update previous last value
-        if (currentPageValues.length > 0) {
-          previousLastValue = currentPageValues[currentPageValues.length - 1];
-        }
-        
-        // Check if next button exists and is enabled
-        const isNextVisible = await this.nextButton.isVisible().catch(() => false);
-        const isNextEnabled = await this.nextButton.isEnabled().catch(() => false);
-        
+      }
+
+      // Save last value
+      if (currentPageValues.length > 0) {
+        previousLastValue =
+          currentPageValues[currentPageValues.length - 1];
+      }
+
+      // Pagination
+      try {
+
+        const isNextVisible = await this.nextButton.isVisible();
+        const isNextEnabled = await this.nextButton.isEnabled();
+
         if (!isNextVisible || !isNextEnabled) {
           console.log(`📊 Reached last page (Page ${pageNumber})`);
           break;
         }
-        
-        await this.nextButton.click();
-        await this.page.waitForTimeout(1500);
+
+        console.log(
+          `➡️ Moving to Page ${pageNumber + 1}`
+        );
+
+        await this.nextButton.scrollIntoViewIfNeeded();
+
+        await Promise.all([
+          this.page.waitForLoadState('networkidle'),
+          this.nextButton.click()
+        ]);
+
+        await this.page.waitForTimeout(2000);
+
         pageNumber++;
-        
-        if (pageNumber > 100) break;
+
+      } catch (error) {
+        console.log(
+          `Pagination ended or Next button unavailable: ${error}`
+        );
+        break;
       }
-      
-      // Final verification across all pages
-      const overallCheck = this.checkSorting(allValues, order, columnName);
-      if (overallCheck.expected !== overallCheck.actual) {
-        isAllPass = false;
-        const errorMsg = `Overall sorting violation: ${overallCheck.actual} (Expected: ${overallCheck.expected})`;
-        errorDetails.push(errorMsg);
-        console.log(`❌ Overall sorting failed across ${pageNumber} pages`);
-      } else {
-        console.log(`✅ Overall sorting PASSED across ${pageNumber} pages (${allValues.length} total rows)`);
+
+      // Safety limit
+      if (pageNumber > 100) {
+        console.log('Stopped at 100 pages (Safety Limit)');
+        break;
       }
-      
-      logAndValidate({
-        step: `Overall - ${columnName} (${order}) - ${allValues.length} rows across ${pageNumber} pages`,
-        expected: overallCheck.expected,
-        actual: overallCheck.actual,
-        isSummary: false
-      }, testInfo);
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(`⚠️ Error validating ${columnName} column (${order}): ${errorMessage}`);
-      return { 
-        passed: false, 
-        error: `Exception: ${errorMessage}` 
-      };
     }
-    
-    if (!isAllPass) {
-      return { 
-        passed: false, 
-        error: errorDetails.join('; ') 
-      };
+
+    // Final validation across all pages
+    const overallCheck = this.checkSorting(
+      allValues,
+      order,
+      columnName
+    );
+
+    if (overallCheck.expected !== overallCheck.actual) {
+
+      isAllPass = false;
+
+      errorDetails.push(
+        `Overall sorting violation: ${overallCheck.actual}`
+      );
+
+      console.log(
+        `❌ Overall sorting failed across ${pageNumber} pages`
+      );
+
+    } else {
+
+      console.log(
+        `✅ Overall sorting PASSED across ${pageNumber} pages (${allValues.length} rows)`
+      );
     }
-    
-    return { passed: true };
+
+    Reporter.validateData(
+      overallCheck.expected,
+      overallCheck.actual,
+      `Overall - ${columnName} (${order}) - ${allValues.length} rows across ${pageNumber} pages`,
+      testInfo
+    );
+
+  } catch (error) {
+
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    console.log(
+      `⚠️ Error validating ${columnName} (${order}): ${errorMessage}`
+    );
+
+    return {
+      passed: false,
+      error: `Exception: ${errorMessage}`
+    };
   }
 
+  if (!isAllPass) {
+    return {
+      passed: false,
+      error: errorDetails.join('; ')
+    };
+  }
+
+  return { passed: true };
+}
   private async getColumnValues(columnIndex: number, columnName: string): Promise<any[]> {
     const values: any[] = [];
     const count = await this.tableRows.count();
