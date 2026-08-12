@@ -1,0 +1,8 @@
+{
+  "editUserType": {
+    "ExistingUserTypeName": "Admin",
+    "UserTypeName": "Manager",
+    "TypeKey": "manager",
+    "Active": true
+  }
+}

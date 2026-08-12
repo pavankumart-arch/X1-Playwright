@@ -1,0 +1,227 @@
+{
+  "AccessUrls": [
+    {
+      "title": "Rooftop List By Reseller",
+      "url": "https://x1consolefe-prod.atamai.in/admin/rooftop/list?currentResellerId=1"
+    },
+   
+    {
+      "title": "Rooftop List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/rooftop/list"
+    },
+     {
+      "title": "Rooftop Users",
+      "url": "https://x1consolefe-prod.atamai.in/rooftops/users/list"
+    },
+    {
+      "title": "Create Rooftop User",
+      "url": "https://x1consolefe-prod.atamai.in/rooftops/users/create"
+    },
+    {
+     "title": "Edit Rooftop User",
+      "url": "https://x1consolefe-prod.atamai.in/rooftops/users/update?id=3"
+    },
+    {
+     "title": "Inventory List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/vehicle/list?currentRooftopId=1"
+    },
+    {
+     "title": "Vehicle Data",
+     "url": "https://x1consolefe-prod.atamai.in/admin/vehicle_detail/vehicle_detail?currentVehicleId=22"
+    }
+  ],
+
+  "NoAccessUrls": [
+  
+    {
+      "title": "Reseller List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/reseller/list"
+    },
+ {
+      "title": "Create Rooftop",
+      "url": "https://x1consolefe-prod.atamai.in/admin/rooftop/create"
+    },
+    {
+      "title": "Edit Rooftop",
+      "url": "https://x1consolefe-prod.atamai.in/admin/rooftop/update?id=1"
+    },
+
+    {
+      "title": "Create Reseller",
+      "url": "https://x1consolefe-prod.atamai.in/admin/reseller/create"
+    },
+    {
+      "title": "Edit Reseller",
+      "url": "https://x1consolefe-prod.atamai.in/admin/reseller/update?id=1"
+    },
+  
+    {
+      "title": "Application Users",
+      "url": "https://x1consolefe-prod.atamai.in/admin/user/list"
+    },
+    {
+      "title": "Create User",
+      "url": "https://x1consolefe-prod.atamai.in/admin/user/create"
+    },
+    {
+      "title": "Edit User",
+      "url": "https://x1consolefe-prod.atamai.in/admin/user/update?id=4"
+    },
+    {
+      "title": "Make List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/make/list"
+    },
+    {
+      "title": "Create Make",
+      "url": "https://x1consolefe-prod.atamai.in/admin/make/create"
+    },
+    {
+      "title": "Edit Make",
+      "url": "https://x1consolefe-prod.atamai.in/admin/make/update?id=1"
+    },
+    {
+      "title": "Model List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/model/list?currentMakeId=1"
+    },
+    {
+      "title": "Create Model",
+      "url": "https://x1consolefe-prod.atamai.in/admin/model/create"
+    },
+    {
+      "title": "Edit Model",
+      "url": "https://x1consolefe-prod.atamai.in/admin/model/update?id=1"
+    },
+    {
+      "title": "Trim List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/trim/list?currentModelId=1"
+    },
+    {
+      "title": "Create Trim",
+      "url": "https://x1consolefe-prod.atamai.in/admin/trim/create"
+    },
+    {
+      "title": "Edit Trim",
+      "url": "https://x1consolefe-prod.atamai.in/admin/trim/update?id=1"
+    },
+    {
+      "title": "Year List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/year/list"
+    },
+    {
+      "title": "Create Year",
+      "url": "https://x1consolefe-prod.atamai.in/admin/year/create"
+    },
+    {
+      "title": "Edit Year",
+      "url": "https://x1consolefe-prod.atamai.in/admin/year/update?id=132"
+    },
+    {
+      "title": "Color List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/color/list"
+    },
+    {
+      "title": "Create Color",
+      "url": "https://x1consolefe-prod.atamai.in/admin/color/create"
+    },
+    {
+      "title": "Edit Color",
+      "url": "https://x1consolefe-prod.atamai.in/admin/color/update?id=14597"
+    },
+    {
+      "title": "Body Type List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/body_type/list"
+    },
+    {
+      "title": "Create Body Type",
+      "url": "https://x1consolefe-prod.atamai.in/admin/body_type/create"
+    },
+    {
+      "title": "Edit Body Type",
+      "url": "https://x1consolefe-prod.atamai.in/admin/body_type/update?id=2"
+    },
+    {
+      "title": "Application List",
+      "url": "https://x1consolefe-prod.atamai.in/admin/apps/list"
+    },
+    {
+      "title": "Create Application",
+      "url": "https://x1consolefe-prod.atamai.in/admin/apps/create"
+    },
+    {
+      "title": "Edit Application",
+      "url": "https://x1consolefe-prod.atamai.in/admin/apps/update?id=44"
+    },
+    {
+      "title": "Application Modules",
+      "url": "https://x1consolefe-prod.atamai.in/admin/app_module/list?currentAppId=44"
+    },
+    {
+      "title": "Create Module",
+      "url": "https://x1consolefe-prod.atamai.in/admin/app_module/create"
+    },
+    {
+      "title": "Edit Module",
+      "url": "https://x1consolefe-prod.atamai.in/admin/app_module/update?id=12"
+    },
+    {
+      "title": "Run Types",
+      "url": "https://x1consolefe-prod.atamai.in/admin/runtype/list?currentModuleId=12"
+    },
+    {
+      "title": "Create Run Type",
+      "url": "https://x1consolefe-prod.atamai.in/admin/runtype/create"
+    },
+    {
+      "title": "Edit Run Type",
+      "url": "https://x1consolefe-prod.atamai.in/admin/runtype/update?id=503"
+    },
+    {
+      "title": "User Roles",
+      "url": "https://x1consolefe-prod.atamai.in/admin/role/list"
+    },
+    {
+      "title": "Create User Role",
+      "url": "https://x1consolefe-prod.atamai.in/admin/role/create"
+    },
+    {
+      "title": "Edit User Role",
+      "url": "https://x1consolefe-prod.atamai.in/admin/role/update?id=42"
+    },
+    {
+      "title": "User Types",
+      "url": "https://x1consolefe-prod.atamai.in/admin/user_type/list"
+    },
+    {
+      "title": "Create User Type",
+      "url": "https://x1consolefe-prod.atamai.in/admin/user_type/create"
+    },
+    {
+      "title": "Edit User Type",
+      "url": "https://x1consolefe-prod.atamai.in/admin/user_type/update?id=7"
+    },
+    {
+      "title": "Navigation Groups",
+      "url": "https://x1consolefe-prod.atamai.in/admin/navGroup/list"
+    },
+    {
+      "title": "Create Navigation Group",
+      "url": "https://x1consolefe-prod.atamai.in/admin/navGroup/create"
+    },
+    {
+      "title": "Edit Navigation Group",
+      "url": "https://x1consolefe-prod.atamai.in/admin/navGroup/update?id=05b41762-b756-454a-be80-79b9a5022d91"
+    },
+    {
+      "title": "Navigation Items",
+      "url": "https://x1consolefe-prod.atamai.in/admin/navItems/list?currentNavGroupId=05b41762-b756-454a-be80-79b9a5022d91"
+    },
+    {
+      "title": "Create Navigation Item",
+      "url": "https://x1consolefe-prod.atamai.in/admin/navItems/create"
+    },
+    {
+      "title": "Edit Navigation Item",
+      "url": "https://x1consolefe-prod.atamai.in/admin/navItems/update?id=b9c17736-7d71-491c-8d5f-9e70b31ea2e1"
+    }
+  ]
+}

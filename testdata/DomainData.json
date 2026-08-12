@@ -1,0 +1,34 @@
+{
+    "Make": "Testmake",
+    "EditMake": "Editmake",
+    "ExistMake": "Toyota",
+
+    "Modelname": "Testmodel",
+    "EditModelname":"Editmodel",
+    "ExistModelname": "4Runner",
+
+    "Trimname":"AddTrim1",
+    "EditTrim ":"EditTrim",
+    "ExistTrimname":"ST",
+
+
+    "Modelnameforsorting": "Ford",
+
+
+    "Yearname": "2050",
+    "EditYear": "1900",
+    "ExistingYear": "2000",
+
+    "Colour": "light blue",
+    "Hex Code": "#ADD8E6",
+    "editcolor": "Light yellow",
+    "editHexCode":"#ADD8E7",
+    "existingColour":"01l0",
+
+
+    "newbodytype":"TestBodytype",
+    "editbodytype":"EditBodytype",
+    "existingbodycolor":"SUV",
+    "minnumberbodytype":"q"
+
+}

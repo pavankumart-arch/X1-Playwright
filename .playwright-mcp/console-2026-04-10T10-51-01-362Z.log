@@ -1,0 +1,6 @@
+[      56ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://x1consolefe-sandbox.atamai.in/admin:0
+[      88ms] [LOG] 💿 Hey developer 👋. You can provide a way better UX than this when your app throws errors. Check out https://reactrouter.com/how-to/error-boundary for more information. @ http://x1consolefe-sandbox.atamai.in/admin:1
+[     121ms] [WARNING] No routes matched location "/admin"  @ http://x1consolefe-sandbox.atamai.in/assets/chunk-UVKPFVEO-C_y5aBUL.js:25
+[     126ms] [ERROR] Ne @ http://x1consolefe-sandbox.atamai.in/assets/chunk-UVKPFVEO-C_y5aBUL.js:46
+[     147ms] [WARNING] No routes matched location "/admin"  @ http://x1consolefe-sandbox.atamai.in/assets/chunk-UVKPFVEO-C_y5aBUL.js:25
+[     148ms] [ERROR] Ne @ http://x1consolefe-sandbox.atamai.in/assets/chunk-UVKPFVEO-C_y5aBUL.js:46

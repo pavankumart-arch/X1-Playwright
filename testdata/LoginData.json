@@ -1,0 +1,58 @@
+{
+    "QAvalidData": {
+      "Username": "SuperAdmin",
+      "Password": "Admin@123"
+    },
+    "Reseller_Admin": [
+      {
+        "Username": "reseller_admin",
+        "Password": "Test@123"
+      }
+    ],
+    "Super_Admin": [
+      {
+        "Username": "SuperAdmin",
+        "Password": "Admin@123"
+      }
+    ],
+
+    "rooftop_viewer": [
+      {
+        "Username": "rooftop_viewer",
+        "Password": "Test@123"
+      }
+    ],
+
+    "rooftop_viewer2": [
+      {
+        "Username": "rooftop_viewer1",
+        "Password": "Pavan123@"
+      }
+    ],
+
+    "rooftop_viewer3": [
+      {
+        "Username": "rooftop_viewer2",
+        "Password": "Pavan123@"
+      }
+    ],
+    "Rooftop_mgr": [
+      {
+        "Username": "rooftop_mgr",
+        "Password": "Test@123"
+      }
+    ],
+       
+    "Rooftop_mgr2": [
+      {
+        "Username": "rooftop_mgr2",
+        "Password": "Pavan123@"
+      }
+    ],
+    "Reseller_Admin2": [
+      {
+        "Username": "reseller_admin2",
+        "Password": "Pavan123@"
+      }
+    ]
+}
